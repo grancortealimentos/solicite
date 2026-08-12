@@ -1,27 +1,41 @@
-@extends('layouts.app', ['title' => 'Redefinir senha'])
+{{-- resources/views/auth/reset-password.blade.php --}}
+<x-layouts.guest :title="'Redefinir senha · ' . config('app.name')">
 
-@section('content')
-    <form method="POST" action="{{ route('password.reset.store') }}" class="space-y-4">
-        @csrf
-        <input type="hidden" name="token" value="{{ $token }}">
+    {{-- Logo --}}
+    <div class="flex justify-center mb-6">
+        <a href="{{ route('login') }}">
+            <x-logo class="h-20 w-auto" />
+        </a>
+    </div>
 
-        <div>
-            <label for="password" class="block text-sm font-medium text-gray-700">Nova senha</label>
-            <input id="password" type="password" name="password" required minlength="8"
-                class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
-            @error('password')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-            @enderror
+    {{-- Card --}}
+    <div class="bg-surface border border-border rounded-2xl shadow-xl overflow-hidden">
+
+        {{-- Cabeçalho do card --}}
+        <div class="px-8 pt-8 pb-6 text-center border-b border-border">
+            <h1 class="text-2xl font-bold text-ink">Redefinir senha</h1>
+            <p class="text-sm text-ink-muted mt-1">Escolha uma nova senha para sua conta.</p>
         </div>
 
-        <div>
-            <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Confirme a nova senha</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" required minlength="8"
-                class="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-400 focus:outline-none">
-        </div>
+        <div class="p-8">
+            <form method="POST" action="{{ route('password.reset.store') }}">
+                @csrf
+                <input type="hidden" name="token" value="{{ $token }}">
 
-        <button type="submit" class="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800">
-            Redefinir senha
-        </button>
-    </form>
-@endsection
+                <x-password-fields>
+                    Redefinir senha
+                </x-password-fields>
+
+                @error('password')
+                    <p class="text-xs text-danger mt-3">{{ $message }}</p>
+                @enderror
+            </form>
+        </div>
+    </div>
+
+    {{-- Rodapé --}}
+    <p class="text-center text-xs text-ink-muted mt-6">
+        &copy; {{ date('Y') }} {{ config('app.name') }}. Todos os direitos reservados.
+    </p>
+
+</x-layouts.guest>

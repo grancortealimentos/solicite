@@ -1,34 +1,43 @@
-@extends('layouts.admin', ['title' => 'Usuários'])
+<x-layouts.app :title="'Usuários'">
 
-@section('content')
-    <div class="overflow-hidden rounded-lg border border-gray-200 bg-white">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th class="px-4 py-2 text-left font-medium text-gray-600">Nome</th>
-                    <th class="px-4 py-2 text-left font-medium text-gray-600">E-mail</th>
-                    <th class="px-4 py-2 text-left font-medium text-gray-600">Papel</th>
-                    <th class="px-4 py-2 text-right font-medium text-gray-600">Ações</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                @foreach ($usuarios as $usuario)
-                    <tr>
-                        <td class="px-4 py-2">{{ $usuario->name }}</td>
-                        <td class="px-4 py-2">{{ $usuario->email }}</td>
-                        <td class="px-4 py-2">{{ $usuario->roles->pluck('name')->join(', ') ?: '—' }}</td>
-                        <td class="px-4 py-2 text-right">
-                            @can('usuarios.gerenciar_permissoes')
-                                <a href="{{ route('usuarios.permissoes', $usuario) }}" class="text-gray-600 underline">
-                                    Permissões
-                                </a>
-                            @endcan
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+    <div class="space-y-6">
+
+        <h1 class="text-xl font-semibold text-ink">Usuários</h1>
+
+        <div class="bg-surface border border-border rounded-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-border text-sm">
+                    <thead class="bg-surface-hover">
+                        <tr>
+                            <th class="px-4 py-3 text-left font-medium text-ink-muted">Nome</th>
+                            <th class="px-4 py-3 text-left font-medium text-ink-muted">E-mail</th>
+                            <th class="px-4 py-3 text-left font-medium text-ink-muted">Papel</th>
+                            <th class="px-4 py-3 text-right font-medium text-ink-muted">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border">
+                        @foreach ($usuarios as $usuario)
+                            <tr class="hover:bg-surface-hover">
+                                <td class="px-4 py-3 text-ink">{{ $usuario->name }}</td>
+                                <td class="px-4 py-3 text-ink-muted">{{ $usuario->email }}</td>
+                                <td class="px-4 py-3 text-ink-muted">{{ $usuario->roles->pluck('name')->join(', ') ?: '—' }}</td>
+                                <td class="px-4 py-3 text-right">
+                                    @can('usuarios.gerenciar_permissoes')
+                                        <a href="{{ route('usuarios.permissoes', $usuario) }}"
+                                            class="text-primary-light hover:underline">
+                                            Permissões
+                                        </a>
+                                    @endcan
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {{ $usuarios->links() }}
+
     </div>
 
-    <div class="mt-4">{{ $usuarios->links() }}</div>
-@endsection
+</x-layouts.app>
