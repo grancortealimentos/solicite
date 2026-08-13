@@ -38,7 +38,9 @@
                             <td class="px-4 py-3 text-ink">{{ $item['importacao'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['grupo_produto'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['quantidade'] }}</td>
-                            <td class="px-4 py-3 text-ink">{{ \Illuminate\Support\Carbon::parse($item['data_prazo'])->format('d/m/Y') }}</td>
+                            <td class="px-4 py-3 text-ink">
+                                {{ \Illuminate\Support\Carbon::parse($item['data_prazo'])->format('d/m/Y') }}
+                            </td>
                             <td class="px-4 py-3 text-ink">{{ $item['observacao'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['centro_custo'] }}</td>
                             <td class="px-4 py-3 text-end">
@@ -65,11 +67,11 @@
         <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
             <div class="fixed inset-0 bg-black/60" wire:click="fecharModalBusca"></div>
 
-            <div class="relative bg-surface border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div
+                class="relative bg-surface border border-border rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
                 <div class="p-7 border-b border-border flex items-center justify-between">
                     <h3 class="text-sm font-semibold text-ink">Buscar produto</h3>
-                    <button type="button" wire:click="fecharModalBusca"
-                        class="text-ink-muted hover:text-ink">
+                    <button type="button" wire:click="fecharModalBusca" class="text-ink-muted hover:text-ink">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
@@ -104,71 +106,98 @@
 
     {{-- Modal de detalhes do item --}}
     @if ($detalheModalAberta && $produtoSelecionado)
-        <div class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div class="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6">
+            <!-- Backdrop -->
             <div class="fixed inset-0 bg-black/60" wire:click="cancelarDetalhe"></div>
 
-            <div class="relative bg-surface border border-border rounded-xl shadow-xl w-full max-w-xl">
-                <div class="p-12 border-b border-border space-y-2">
-                    <h3 class="text-sm font-semibold text-ink">Detalhes do item</h3>
-                    <p class="text-xs text-ink-muted">
-                        {{ $produtoSelecionado['codigo'] }} — {{ $produtoSelecionado['descricao'] }}
+            <!-- Container do Modal -->
+            <div class="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
+
+                <!-- Cabeçalho (Padding Lateral: px-6 sm:px-8) -->
+                <div class="px-6 sm:px-8 py-5 border-b border-border">
+                    <h3 class="text-base font-semibold text-ink">Detalhes do item</h3>
+                    <p class="text-xs text-ink-muted mt-1 leading-relaxed">
+                        <span class="font-medium text-ink">{{ $produtoSelecionado['codigo'] }}</span> —
+                        {{ $produtoSelecionado['descricao'] }}
                     </p>
                 </div>
 
-                <form wire:submit="confirmarItem" class="p-12 space-y-8">
-                    <div class="grid grid-cols-2 gap-10">
-                        <div>
-                            <label for="quantidade" class="block text-sm font-medium text-ink-muted mb-4">Quantidade *</label>
-                            <input id="quantidade" type="number" min="1" step="1" wire:model="quantidade" autofocus
-                                class="py-4 px-3.5 block w-full bg-canvas border rounded-xl sm:text-sm text-ink focus:ring-primary/20 @error('quantidade') border-danger focus:border-danger @else border-border focus:border-primary @enderror">
-                            @error('quantidade')
-                                <p class="mt-2 text-sm text-danger">{{ $message }}</p>
+                <!-- Formulário -->
+                <form wire:submit="confirmarItem">
+
+                    <!-- Corpo do Formulário (Padding Interno Isolado) -->
+                    <div class="px-6 sm:px-8 py-6">
+
+                        <!-- Bloco 1: Quantidade e Data -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                            <div>
+                                <label for="quantidade" class="block text-xs font-semibold text-ink mb-2">
+                                    Quantidade <span class="text-danger">*</span>
+                                </label>
+                                <input id="quantidade" type="number" min="1" step="1" wire:model="quantidade" autofocus
+                                    class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('quantidade') border-danger @enderror">
+                                @error('quantidade')
+                                    <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div>
+                                <label for="dataPrazo" class="block text-xs font-semibold text-ink mb-2">
+                                    Data prazo <span class="text-danger">*</span>
+                                </label>
+                                <input id="dataPrazo" type="date" wire:model="dataPrazo"
+                                    class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('dataPrazo') border-danger @enderror">
+                                @error('dataPrazo')
+                                    <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Bloco 2: Centro de Custo -->
+                        <div class="mb-5">
+                            <label for="centroCusto" class="block text-xs font-semibold text-ink mb-2">
+                                Centro de custo <span class="text-danger">*</span>
+                            </label>
+                            <select id="centroCusto" wire:model="centroCusto"
+                                class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('centroCusto') border-danger @enderror">
+                                <option value="">Selecione</option>
+                                @foreach ($this->centrosCustoDisponiveis as $valor => $label)
+                                    <option value="{{ $valor }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @error('centroCusto')
+                                <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
                             @enderror
                         </div>
 
+                        <!-- Bloco 3: Observação -->
                         <div>
-                            <label for="dataPrazo" class="block text-sm font-medium text-ink-muted mb-4">Data prazo *</label>
-                            <input id="dataPrazo" type="date" wire:model="dataPrazo"
-                                class="py-4 px-3.5 block w-full bg-canvas border rounded-xl sm:text-sm text-ink focus:ring-primary/20 @error('dataPrazo') border-danger focus:border-danger @else border-border focus:border-primary @enderror">
-                            @error('dataPrazo')
-                                <p class="mt-2 text-sm text-danger">{{ $message }}</p>
+                            <label for="observacao" class="block text-xs font-semibold text-ink mb-2">
+                                Observação <span class="text-danger">*</span>
+                            </label>
+                            <textarea id="observacao" rows="3" wire:model="observacao"
+                                class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none @error('observacao') border-danger @enderror"></textarea>
+                            @error('observacao')
+                                <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
                             @enderror
                         </div>
+
                     </div>
 
-                    <div>
-                        <label for="centroCusto" class="block text-sm font-medium text-ink-muted mb-4">Centro de custo *</label>
-                        <select id="centroCusto" wire:model="centroCusto"
-                            class="py-4 px-3.5 block w-full bg-canvas border rounded-xl sm:text-sm text-ink focus:ring-primary/20 @error('centroCusto') border-danger focus:border-danger @else border-border focus:border-primary @enderror">
-                            <option value="">Selecione</option>
-                            @foreach ($this->centrosCustoDisponiveis as $valor => $label)
-                                <option value="{{ $valor }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        @error('centroCusto')
-                            <p class="mt-2 text-sm text-danger">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div>
-                        <label for="observacao" class="block text-sm font-medium text-ink-muted mb-4">Observação *</label>
-                        <textarea id="observacao" rows="5" wire:model="observacao"
-                            class="py-4 px-3.5 block w-full bg-canvas border rounded-xl sm:text-sm text-ink placeholder:text-ink-muted focus:ring-primary/20 @error('observacao') border-danger focus:border-danger @else border-border focus:border-primary @enderror"></textarea>
-                        @error('observacao')
-                            <p class="mt-2 text-sm text-danger">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="flex items-center justify-end gap-x-3 pt-8 border-t border-border">
+                    <!-- Rodapé das Ações (Padding Lateral Combinado) -->
+                    <div class="px-6 sm:px-8 py-4 border-t border-border flex items-center justify-end gap-3 bg-surface">
                         <button type="button" wire:click="cancelarDetalhe"
-                            class="py-2 px-4 text-sm font-medium rounded-lg text-ink-muted hover:bg-surface-hover">
+                            class="py-2.5 px-4 text-sm font-medium rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors">
                             Cancelar
                         </button>
                         <button type="submit" wire:loading.attr="disabled" wire:target="confirmarItem"
-                            class="py-2 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40 disabled:opacity-70 disabled:cursor-not-allowed">
-                            <svg wire:loading wire:target="confirmarItem" class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z"></path>
+                            class="py-2.5 px-4 inline-flex items-center gap-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-70 disabled:cursor-not-allowed transition-colors">
+                            <svg wire:loading wire:target="confirmarItem" class="size-4 animate-spin" fill="none"
+                                viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                                </circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z">
+                                </path>
                             </svg>
                             <span wire:loading.remove wire:target="confirmarItem">Adicionar item</span>
                             <span wire:loading wire:target="confirmarItem">Adicionando...</span>
