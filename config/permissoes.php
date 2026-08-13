@@ -35,6 +35,13 @@ return [
                 'usuarios.gerenciar_permissoes' => 'Atribuir papel e permissões diretas ao usuário',
             ],
         ],
+        'pessoas' => [
+            'codigo' => '03',
+            'label' => 'Pessoas',
+            'permissoes' => [
+                'pessoas.criar' => 'Cadastrar pessoas',
+            ],
+        ],
     ],
 
 ];

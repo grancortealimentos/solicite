@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\PapelController;
+use App\Http\Controllers\PessoaController;
+use App\Http\Controllers\SolicitacaoController;
 use App\Http\Controllers\UsuarioController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,12 +39,26 @@ Route::middleware('auth')->group(function () {
             Route::delete('/{role}', [PapelController::class, 'destroy'])->middleware('can:papeis.excluir')->name('destroy');
         });
 
+        Route::prefix('pessoas')->name('pessoas.')->group(function () {
+            Route::get('/criar', [PessoaController::class, 'create'])->middleware('can:pessoas.criar')->name('create');
+            Route::post('/', [PessoaController::class, 'store'])->middleware('can:pessoas.criar')->name('store');
+        });
+
         Route::prefix('usuarios')->name('usuarios.')->group(function () {
             Route::get('/', [UsuarioController::class, 'index'])->middleware('can:usuarios.visualizar')->name('index');
             Route::get('/{usuario}/permissoes', [UsuarioController::class, 'permissoes'])
                 ->middleware('can:usuarios.gerenciar_permissoes')->name('permissoes');
             Route::put('/{usuario}/permissoes', [UsuarioController::class, 'atualizarPermissoes'])
                 ->middleware('can:usuarios.gerenciar_permissoes')->name('permissoes.update');
+        });
+
+        Route::prefix('solicitacao')->name('solicitacao.')->group(function () {
+            Route::get('/', [SolicitacaoController::class, 'index'])->middleware('can:solicitacao.visualizar')
+                ->name('index');
+
+            Route::get('/criar', [SolicitacaoController::class, 'create'])
+                ->middleware('can:solicitacao.create')
+                ->name('create');
         });
     });
 });

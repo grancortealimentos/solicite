@@ -88,6 +88,15 @@ class AutentiqueClient
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function createPerson(string $token, array $data): array
+    {
+        return $this->handle($this->authenticatedRequest($token)->post('persons', $data));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function handle(Response $response): array

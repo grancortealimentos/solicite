@@ -41,6 +41,34 @@
                     </a>
                 </li>
 
+                @can('pessoas.criar')
+                    <li>
+                        <a href="{{ route('pessoas.create') }}" @class([
+                            'flex items-center gap-x-3 py-2 px-2.5 text-sm rounded-lg',
+                            'bg-primary/15 text-primary-light font-medium' => request()->routeIs('pessoas.*'),
+                            'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('pessoas.*'),
+                        ])>
+                            <i class="bi bi-person-plus {{ request()->routeIs('pessoas.*') ? 'hidden' : '' }}"></i>
+                            <i class="bi bi-person-plus-fill {{ request()->routeIs('pessoas.*') ? '' : 'hidden' }}"></i>
+                            Nova pessoa
+                        </a>
+                    </li>
+                @endcan
+
+                @can('solicitacao.criar')
+                    <li>
+                        <a href="{{ route('solicitacao.create') }}" @class([
+                            'flex items-center gap-x-3 py-2 px-2.5 text-sm rounded-lg',
+                            'bg-primary/15 text-primary-light font-medium' => request()->routeIs('solicitacao.*'),
+                            'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('solicitacao.*'),
+                        ])>
+                            <i class="bi bi-cart-plus {{ request()->routeIs('solicitacao.*') ? 'hidden' : '' }}"></i>
+                            <i class="bi bi-cart-plus-fill {{ request()->routeIs('solicitacao.*') ? '' : 'hidden' }}"></i>
+                            Solicitações de compras
+                        </a>
+                    </li>
+                @endcan
+
                 @canany(['papeis.visualizar', 'usuarios.visualizar'])
                     {{-- Item com submenu (accordion em Alpine) --}}
                     <li x-data="{ open: {{ request()->routeIs('papeis.*') || request()->routeIs('usuarios.*') ? 'true' : 'false' }} }">
