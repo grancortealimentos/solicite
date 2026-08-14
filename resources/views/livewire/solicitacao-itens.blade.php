@@ -77,14 +77,14 @@
                 <div class="p-7 border-b border-border">
                     <input type="text" wire:model.live.debounce.300ms="termoBusca" autofocus
                         placeholder="Buscar item por descrição..."
-                        class="py-3 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:ring-primary/20">
+                        class="py-3 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink uppercase placeholder:text-ink-muted placeholder:normal-case focus:border-primary focus:ring-primary/20">
 
                     <div wire:loading wire:target="termoBusca" class="text-xs text-ink-muted mt-2">
                         Buscando...
                     </div>
                 </div>
 
-                <div class="overflow-y-auto divide-y divide-border">
+                <div class="flex-1 min-h-0 overflow-y-auto divide-y divide-border">
                     @forelse ($this->resultadoBusca['data'] as $produto)
                         <div wire:key="produto-{{ $produto->code }}"
                             wire:dblclick="selecionarProduto('{{ $produto->code }}')"
@@ -105,9 +105,10 @@
                     @endforelse
                 </div>
 
-                <div class="p-4 border-t border-border flex items-center justify-between">
+                <div class="p-4 border-t border-border flex items-center justify-between shrink-0">
                     <button type="button" wire:click="paginaAnterior" @disabled($pagina <= 1)
-                        class="text-sm disabled:opacity-50">
+                        class="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-border text-ink hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors">
+                        <i class="bi bi-chevron-left"></i>
                         Anterior
                     </button>
 
@@ -115,8 +116,9 @@
 
                     <button type="button" wire:click="proximaPagina"
                         @disabled(($pagina * $porPagina) >= $this->resultadoBusca['total'])
-                        class="text-sm disabled:opacity-50">
+                        class="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-border text-ink hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors">
                         Próxima
+                        <i class="bi bi-chevron-right"></i>
                     </button>
                 </div>
             </div>

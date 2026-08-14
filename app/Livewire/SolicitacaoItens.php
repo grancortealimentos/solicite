@@ -93,11 +93,13 @@ class SolicitacaoItens extends Component
     }
 
     /**
-     * Sempre que o usuário digita uma nova busca, volta pra primeira página —
-     * evita o usuário ficar "preso" numa página que não existe mais pro novo filtro.
+     * Sempre que o usuário digita uma nova busca, força maiúsculas (padrão
+     * Protheus) e volta pra primeira página — evita o usuário ficar "preso"
+     * numa página que não existe mais pro novo filtro.
      */
     public function updatedTermoBusca(): void
     {
+        $this->termoBusca = mb_strtoupper($this->termoBusca);
         $this->pagina = 1;
     }
 
