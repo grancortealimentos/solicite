@@ -9,17 +9,28 @@ use Illuminate\Support\Facades\DB;
 
 final class ItemProtheusRepository
 {
-    public function search(?string $description, int $page = 1, int $perPage = 50): array
+    /**
+     * Descrições sem valor cadastradas incorretamente no Protheus (ex.: "."
+     * ou ","), que não devem aparecer na busca de itens.
+     */
+    private const DESCRICOES_INVALIDAS = ['.', ','];
+
+    public function search(?string $term, int $page = 1, int $perPage = 50): array
     {
         $offset = ($page - 1) * $perPage;
 
-        $whereClause = $description !== null && $description !== ''
-            ? 'WHERE RTRIM(B1_DESC) LIKE ?'
-            : '';
+        $hasTerm = $term !== null && $term !== '';
 
-        $bindings = $description !== null && $description !== ''
-            ? ['%'.$description.'%']
-            : [];
+        $placeholders = implode(', ', array_fill(0, count(self::DESCRICOES_INVALIDAS), '?'));
+        $conditions = ["RTRIM(B1_DESC) NOT IN ({$placeholders})"];
+        $bindings = self::DESCRICOES_INVALIDAS;
+
+        if ($hasTerm) {
+            $conditions[] = '(RTRIM(B1_DESC) LIKE ? OR RTRIM(B1_COD) LIKE ?)';
+            $bindings = [...$bindings, '%'.$term.'%', '%'.$term.'%'];
+        }
+
+        $whereClause = 'WHERE '.implode(' AND ', $conditions);
 
         $total = DB::connection('protheus')
             ->selectOne(

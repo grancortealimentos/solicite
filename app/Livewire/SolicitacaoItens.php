@@ -86,7 +86,7 @@ class SolicitacaoItens extends Component
     public function resultadoBusca(): array
     {
         return $this->service->search(
-            description: $this->termoBusca !== '' ? $this->termoBusca : null,
+            term: $this->termoBusca !== '' ? $this->termoBusca : null,
             page: $this->pagina,
             perPage: $this->porPagina,
         );

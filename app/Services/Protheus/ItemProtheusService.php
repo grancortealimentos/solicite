@@ -16,7 +16,7 @@ final class ItemProtheusService
     ) {}
 
     public function search(
-        ?string $description,
+        ?string $term,
         int $page = 1,
         int $perPage = 50
     ): array {
@@ -24,7 +24,7 @@ final class ItemProtheusService
         $safePerPage = min($perPage, self::MAX_PER_PAGE);
 
         return $this->itemProtheusRepository->search(
-            $description,
+            $term,
             $safePage,
             $safePerPage
         );

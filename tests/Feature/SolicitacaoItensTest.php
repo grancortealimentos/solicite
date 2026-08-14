@@ -45,12 +45,23 @@ function catalogoProtheusDeTeste(): Collection
             'BM_GRUPO' => '4910',
             'BM_DESC' => 'PERIFERICOS',
         ],
+        (object) [
+            'B1_COD' => '99999',
+            'B1_DESC' => '.',
+            'B1_TIPO' => 'PA',
+            'B1_LOCPAD' => '10',
+            'B1_UM' => 'UN',
+            'B1_CONTA' => '123456790',
+            'BM_GRUPO' => '4910',
+            'BM_DESC' => 'PERIFERICOS',
+        ],
     ]);
 }
 
 /**
  * Filtra o catálogo de teste pelo termo de busca (%termo%) presente nas
- * bindings, replicando o WHERE RTRIM(B1_DESC) LIKE ? do repositório real.
+ * bindings, replicando o WHERE RTRIM(B1_DESC) LIKE ? OR RTRIM(B1_COD) LIKE ?
+ * do repositório real.
  *
  * @param  Collection<int, object>  $itens
  * @param  array<int, mixed>  $bindings
@@ -58,6 +69,8 @@ function catalogoProtheusDeTeste(): Collection
  */
 function filtrarItensProtheus(Collection $itens, array $bindings): Collection
 {
+    $itens = $itens->reject(fn (object $item) => in_array(trim($item->B1_DESC), ['.', ','], true));
+
     $termo = collect($bindings)->first(fn ($valor) => is_string($valor) && str_starts_with($valor, '%'));
 
     if ($termo === null) {
@@ -67,7 +80,8 @@ function filtrarItensProtheus(Collection $itens, array $bindings): Collection
     $termo = mb_strtolower(trim($termo, '%'));
 
     return $itens
-        ->filter(fn (object $item) => str_contains(mb_strtolower($item->B1_DESC), $termo))
+        ->filter(fn (object $item) => str_contains(mb_strtolower($item->B1_DESC), $termo)
+            || str_contains(mb_strtolower($item->B1_COD), $termo))
         ->values();
 }
 
@@ -125,6 +139,17 @@ test('lista todo o catálogo quando o termo de busca está vazio', function () {
     expect($component->instance()->resultadoBusca()['data'])->toHaveCount(3);
 });
 
+test('não lista produtos com descrição inválida (. ou ,)', function () {
+    $component = Livewire::test(SolicitacaoItens::class);
+
+    $codigos = collect($component->instance()->resultadoBusca()['data'])->pluck('code');
+
+    expect($codigos)->not->toContain('99999');
+
+    $component->set('termoBusca', '99999');
+    expect($component->instance()->resultadoBusca()['data'])->toHaveCount(0);
+});
+
 test('filtra produtos por descrição', function () {
     $component = Livewire::test(SolicitacaoItens::class)
         ->set('termoBusca', 'notebook');
@@ -133,6 +158,16 @@ test('filtra produtos por descrição', function () {
 
     $component->set('termoBusca', 'produto inexistente');
     expect($component->instance()->resultadoBusca()['data'])->toHaveCount(0);
+});
+
+test('filtra produtos por código', function () {
+    $component = Livewire::test(SolicitacaoItens::class)
+        ->set('termoBusca', '88946');
+
+    $resultado = $component->instance()->resultadoBusca()['data'];
+
+    expect($resultado)->toHaveCount(1);
+    expect($resultado[0]->code)->toBe('88946');
 });
 
 test('selecionar um produto fecha a busca e abre o modal de detalhes', function () {

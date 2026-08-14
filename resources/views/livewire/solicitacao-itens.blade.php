@@ -76,7 +76,7 @@
 
                 <div class="p-7 border-b border-border">
                     <input type="text" wire:model.live.debounce.300ms="termoBusca" autofocus
-                        placeholder="Buscar item por descrição..."
+                        placeholder="Buscar por código ou descrição..."
                         class="py-3 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink uppercase placeholder:text-ink-muted placeholder:normal-case focus:border-primary focus:ring-primary/20">
 
                     <div wire:loading wire:target="termoBusca" class="text-xs text-ink-muted mt-2">
