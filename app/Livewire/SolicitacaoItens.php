@@ -94,7 +94,7 @@ class SolicitacaoItens extends Component
             perPage: $this->perPage,
         );
 
-        return view('livewire.protheus.item-selector', [
+        return view('livewire.solicitacao-itens', [
             'items' => $result['data'],
             'total' => $result['total'],
             'hasNextPage' => ($this->page * $this->perPage) < $result['total'],
