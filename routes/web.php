@@ -8,6 +8,7 @@ use App\Http\Controllers\PapelController;
 use App\Http\Controllers\PessoaController;
 use App\Http\Controllers\SolicitacaoController;
 use App\Http\Controllers\UsuarioController;
+use App\Livewire\Solicitacao\Index as SolicitacaoIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -53,11 +54,10 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::prefix('solicitacao')->name('solicitacao.')->group(function () {
-            Route::get('/', [SolicitacaoController::class, 'index'])->middleware('can:solicitacao.visualizar')
-                ->name('index');
+            Route::get('/', SolicitacaoIndex::class)->middleware('can:solicitacao.visualizar')->name('index');
 
             Route::get('/criar', [SolicitacaoController::class, 'create'])
-                ->middleware('can:solicitacao.create')
+                ->middleware('can:solicitacao.criar')
                 ->name('create');
         });
     });

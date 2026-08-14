@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Test User',
                 'email' => 'test@example.com',
             ])->assignRole(config('permissoes.papel_administrador'));
+
+            $this->call(SolicitacaoSeeder::class);
         }
     }
 }

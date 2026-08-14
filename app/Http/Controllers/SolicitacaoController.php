@@ -10,8 +10,6 @@ class SolicitacaoController extends Controller
 
     ) {}
 
-    public function index() {}
-
     public function create(): View
     {
         return view('solicitacao.create');

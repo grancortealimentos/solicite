@@ -55,9 +55,9 @@
                     </li>
                 @endcan
 
-                @can('solicitacao.criar')
+                @can('solicitacao.visualizar')
                     <li>
-                        <a href="{{ route('solicitacao.create') }}" @class([
+                        <a href="{{ route('solicitacao.index') }}" @class([
                             'flex items-center gap-x-3 py-2 px-2.5 text-sm rounded-lg',
                             'bg-primary/15 text-primary-light font-medium' => request()->routeIs('solicitacao.*'),
                             'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('solicitacao.*'),

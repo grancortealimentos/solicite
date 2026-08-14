@@ -42,6 +42,15 @@ return [
                 'pessoas.criar' => 'Cadastrar pessoas',
             ],
         ],
+        'solicitacao' => [
+            'codigo' => '04',
+            'label' => 'Solicitações',
+            'permissoes' => [
+                'solicitacao.visualizar' => 'Listar e visualizar solicitações',
+                'solicitacao.criar' => 'Cadastrar solicitações',
+                'solicitacao.cancelar' => 'Cancelar solicitações pendentes',
+            ],
+        ],
     ],
 
 ];
