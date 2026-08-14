@@ -114,6 +114,17 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'protheus' => [
+            'driver' => 'sqlsrv',
+            'host' => env('PROTHEUS_DB_HOST'),
+            'port' => env('PROTHEUS_DB_PORT', '1433'),
+            'database' => env('PROTHEUS_DB_DATABASE'),
+            'username' => env('PROTHEUS_DB_USERNAME'),
+            'password' => env('PROTHEUS_DB_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'trust_server_certificate' => true,
+        ],
     ],
 
     /*
@@ -179,17 +190,5 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
-    ],
-
-    'protheus' => [
-        'driver' => 'sqlsrv',
-        'host' => env('PROTHEUS_DB_HOST'),
-        'port' => env('PROTHEUS_DB_PORT', '1433'),
-        'database' => env('PROTHEUS_DB_DATABASE'),
-        'username' => env('PROTHEUS_DB_USERNAME'),
-        'password' => env('PROTHEUS_DB_PASSWORD'),
-        'charset' => 'utf8',
-        'prefix' => '',
-        'trust_server_certificate' => true,
     ],
 ];
