@@ -51,6 +51,16 @@ return [
                 'solicitacao.cancelar' => 'Cancelar solicitações pendentes',
             ],
         ],
+        'filiais' => [
+            'codigo' => '05',
+            'label' => 'Filiais',
+            'permissoes' => [
+                'filiais.visualizar' => 'Listar e visualizar filiais',
+                'filiais.criar' => 'Cadastrar filiais',
+                'filiais.editar' => 'Editar filiais',
+                'filiais.excluir' => 'Excluir filiais',
+            ],
+        ],
     ],
 
 ];

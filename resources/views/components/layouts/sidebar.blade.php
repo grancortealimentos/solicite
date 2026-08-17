@@ -69,9 +69,9 @@
                     </li>
                 @endcan
 
-                @canany(['papeis.visualizar', 'usuarios.visualizar'])
+                @canany(['papeis.visualizar', 'usuarios.visualizar', 'filiais.visualizar'])
                     {{-- Item com submenu (accordion em Alpine) --}}
-                    <li x-data="{ open: {{ request()->routeIs('papeis.*') || request()->routeIs('usuarios.*') ? 'true' : 'false' }} }">
+                    <li x-data="{ open: {{ request()->routeIs('papeis.*') || request()->routeIs('usuarios.*') || request()->routeIs('filiais.*') ? 'true' : 'false' }} }">
                         <button type="button" @click="open = !open"
                             class="w-full flex items-center gap-x-3 py-2 px-2.5 text-sm text-ink-muted rounded-lg hover:bg-surface hover:text-ink">
 
@@ -107,6 +107,18 @@
                                         'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('usuarios.*'),
                                     ])>
                                         Usuários
+                                    </a>
+                                </li>
+                            @endcan
+
+                            @can('filiais.visualizar')
+                                <li>
+                                    <a href="{{ route('filiais.index') }}" @class([
+                                        'flex py-2 px-2.5 text-sm rounded-lg',
+                                        'bg-primary/15 text-primary-light font-medium' => request()->routeIs('filiais.*'),
+                                        'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('filiais.*'),
+                                    ])>
+                                        Filiais
                                     </a>
                                 </li>
                             @endcan

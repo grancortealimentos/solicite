@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\PapelController;
 use App\Http\Controllers\PessoaController;
 use App\Http\Controllers\SolicitacaoController;
@@ -38,6 +39,15 @@ Route::middleware('auth')->group(function () {
             Route::get('/{role}/editar', [PapelController::class, 'edit'])->middleware('can:papeis.editar')->name('edit');
             Route::put('/{role}', [PapelController::class, 'update'])->middleware('can:papeis.editar')->name('update');
             Route::delete('/{role}', [PapelController::class, 'destroy'])->middleware('can:papeis.excluir')->name('destroy');
+        });
+
+        Route::prefix('filiais')->name('filiais.')->group(function () {
+            Route::get('/', [CompanyController::class, 'index'])->middleware('can:filiais.visualizar')->name('index');
+            Route::get('/criar', [CompanyController::class, 'create'])->middleware('can:filiais.criar')->name('create');
+            Route::post('/', [CompanyController::class, 'store'])->middleware('can:filiais.criar')->name('store');
+            Route::get('/{company}/editar', [CompanyController::class, 'edit'])->middleware('can:filiais.editar')->name('edit');
+            Route::put('/{company}', [CompanyController::class, 'update'])->middleware('can:filiais.editar')->name('update');
+            Route::delete('/{company}', [CompanyController::class, 'destroy'])->middleware('can:filiais.excluir')->name('destroy');
         });
 
         Route::prefix('pessoas')->name('pessoas.')->group(function () {
