@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Company extends Model
 {
-    /** @use HasFactory<CompanyFactory> */
     use HasFactory;
 
     protected $table = 'companies'; // filiais
