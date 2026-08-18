@@ -1,10 +1,18 @@
 import Alpine from 'alpinejs';
+import collapse from '@alpinejs/collapse';
 import 'preline';
 
-window.Alpine = Alpine;
+// O Livewire já embute e inicia sua própria instância do Alpine nas páginas
+// autenticadas (via @livewireScripts). Só assumimos o Alpine aqui quando ele
+// ainda não foi fornecido (páginas guest, como login, que não usam Livewire).
+if (!window.Alpine) {
+    window.Alpine = Alpine;
+}
+
+window.Alpine.plugin(collapse);
 
 document.addEventListener('alpine:init', () => {
-    Alpine.data('passwordValidator', () => ({
+    window.Alpine.data('passwordValidator', () => ({
         password: '',
         confirmation: '',
 
@@ -27,4 +35,6 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-Alpine.start();
+if (!window.Livewire) {
+    Alpine.start();
+}
