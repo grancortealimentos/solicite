@@ -18,7 +18,8 @@
         </div>
 
         <div class="p-8">
-            <form method="POST" action="{{ route('password.forgot.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('password.forgot.store') }}" class="space-y-5"
+                x-data="{ enviando: false }" @submit="enviando = true" @pageshow.window="enviando = false">
                 @csrf
 
                 {{-- E-mail --}}
@@ -44,8 +45,7 @@
                 </div>
 
                 {{-- Botão enviar --}}
-                <button type="submit" x-data="{ enviando: false }" @click="enviando = true"
-                    :class="enviando && 'opacity-70 pointer-events-none'"
+                <button type="submit" :class="enviando && 'opacity-70 pointer-events-none'"
                     class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40 transition-all">
                     <svg x-show="enviando" x-cloak class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">

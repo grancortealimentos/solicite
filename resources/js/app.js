@@ -1,7 +1,10 @@
+import Alpine from 'alpinejs';
 import 'preline';
 
+window.Alpine = Alpine;
+
 document.addEventListener('alpine:init', () => {
-    window.Alpine.data('passwordValidator', () => ({
+    Alpine.data('passwordValidator', () => ({
         password: '',
         confirmation: '',
 
@@ -23,3 +26,5 @@ document.addEventListener('alpine:init', () => {
         }
     }));
 });
+
+Alpine.start();

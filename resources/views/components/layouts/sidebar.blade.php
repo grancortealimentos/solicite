@@ -41,7 +41,7 @@
                     </a>
                 </li>
 
-                @can('pessoas.criar')
+                <!-- @can('pessoas.criar')
                     <li>
                         <a href="{{ route('pessoas.create') }}" @class([
                             'flex items-center gap-x-3 py-2 px-2.5 text-sm rounded-lg',
@@ -53,7 +53,7 @@
                             Nova pessoa
                         </a>
                     </li>
-                @endcan
+                @endcan -->
 
                 @can('solicitacao.visualizar')
                     <li>
@@ -111,7 +111,7 @@
                                 </li>
                             @endcan
 
-                            @can('filiais.visualizar')
+                            <!-- @can('filiais.visualizar')
                                 <li>
                                     <a href="{{ route('filiais.index') }}" @class([
                                         'flex py-2 px-2.5 text-sm rounded-lg',
@@ -121,7 +121,7 @@
                                         Filiais
                                     </a>
                                 </li>
-                            @endcan
+                            @endcan -->
                         </ul>
                     </li>
                 @endcanany

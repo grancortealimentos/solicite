@@ -17,3 +17,7 @@
 
 /* Plugins */
 @plugin "@tailwindcss/forms";
+
+[x-cloak] {
+    display: none !important;
+}

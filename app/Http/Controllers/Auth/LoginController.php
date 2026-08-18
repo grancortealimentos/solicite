@@ -26,9 +26,12 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        try {
+        try 
+        {
             $result = $autentique->login($credentials['email'], $credentials['password']);
-        } catch (AutentiqueApiException $e) {
+        } 
+        catch (AutentiqueApiException $e) 
+        {
             throw ValidationException::withMessages([
                 'email' => $e->isValidationError()
                     ? ($e->errors['email'][0] ?? $e->getMessage())

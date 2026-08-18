@@ -13,7 +13,7 @@
 
         {{-- Cabeçalho do card --}}
         <div class="px-8 pt-8 pb-6 text-center border-b border-border">
-            <h1 class="text-2xl font-bold text-ink">Bem-vindo de volta</h1>
+            <h1 class="text-2xl font-bold text-ink">Bem-vindo ao Solicite </h1>
             <p class="text-sm text-ink-muted mt-1">Entre com suas credenciais para continuar.</p>
         </div>
 
@@ -22,7 +22,8 @@
             {{-- Mensagens de session('status')/error são exibidas pelo
                  <x-toast-container> do layout guest, para manter a consistência. --}}
 
-            <form method="POST" action="{{ route('login.store') }}" class="space-y-5">
+            <form method="POST" action="{{ route('login.store') }}" class="space-y-5" x-data="{ enviando: false }"
+                @submit="enviando = true" @pageshow.window="enviando = false">
                 @csrf
 
                 {{-- E-mail --}}
@@ -103,8 +104,7 @@
                 </div>
 
                 {{-- Botão entrar --}}
-                <button type="submit" x-data="{ enviando: false }" @click="enviando = true"
-                    :class="enviando && 'opacity-70 pointer-events-none'"
+                <button type="submit" :class="enviando && 'opacity-70 pointer-events-none'"
                     class="w-full py-3 px-4 inline-flex justify-center items-center gap-x-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40 transition-all">
                     <svg x-show="enviando" x-cloak class="size-4 animate-spin" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
