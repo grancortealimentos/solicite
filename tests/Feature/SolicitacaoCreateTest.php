@@ -205,6 +205,7 @@ test('salva a solicitação com a filial e os itens informados', function () {
     $user = User::factory()->create();
 
     $item = [
+        'item' => 1,
         'codigo' => '88946',
         'descricao' => 'MINI PC',
         'unidade_medida' => 'UN',
@@ -216,6 +217,7 @@ test('salva a solicitação com a filial e os itens informados', function () {
         'observacao' => 'Uso interno.',
         'centro_custo' => 'TI',
         'estoque_filial' => 0.0,
+        'imagens' => [],
     ];
 
     Livewire::actingAs($user)
@@ -233,4 +235,78 @@ test('salva a solicitação com a filial e os itens informados', function () {
     expect($solicitacao->status)->toBe(Solicitacao::STATUS_PENDENTE);
     expect($solicitacao->itens)->toHaveCount(1);
     expect($solicitacao->itens->first()->codigo)->toBe('88946');
+    expect($solicitacao->itens->first()->item)->toBe(1);
+});
+
+test('abrirConfirmacao lista os problemas quando falta filial ou item', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', false)
+        ->assertSet('problemas', [
+            'Escolha a filial da solicitação.',
+            'Adicione pelo menos um item antes de salvar.',
+        ]);
+});
+
+test('abrirConfirmacao abre a revisão quando filial e itens estão completos', function () {
+    $user = User::factory()->create();
+
+    $item = [
+        'item' => 1,
+        'codigo' => '88946',
+        'descricao' => 'MINI PC',
+        'unidade_medida' => 'UN',
+        'armazem' => '50',
+        'cta_contabil' => '123456789',
+        'grupo_produto' => 'INFORMATICA',
+        'quantidade' => 2,
+        'data_prazo' => now()->addDays(5)->format('Y-m-d'),
+        'observacao' => 'Uso interno.',
+        'centro_custo' => 'TI',
+        'estoque_filial' => 0.0,
+        'imagens' => [],
+    ];
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->call('sincronizarItens', [$item])
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', true)
+        ->assertSet('problemas', []);
+
+    expect(Solicitacao::count())->toBe(0);
+});
+
+test('voltar da revisão fecha o diálogo sem salvar', function () {
+    $user = User::factory()->create();
+
+    $item = [
+        'item' => 1,
+        'codigo' => '88946',
+        'descricao' => 'MINI PC',
+        'unidade_medida' => 'UN',
+        'armazem' => '50',
+        'cta_contabil' => '123456789',
+        'grupo_produto' => 'INFORMATICA',
+        'quantidade' => 2,
+        'data_prazo' => now()->addDays(5)->format('Y-m-d'),
+        'observacao' => 'Uso interno.',
+        'centro_custo' => 'TI',
+        'estoque_filial' => 0.0,
+        'imagens' => [],
+    ];
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->call('sincronizarItens', [$item])
+        ->call('abrirConfirmacao')
+        ->call('voltarParaEdicao')
+        ->assertSet('confirmacaoAberta', false);
+
+    expect(Solicitacao::count())->toBe(0);
 });

@@ -2,8 +2,10 @@
 
 use App\Livewire\SolicitacaoItens;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 /**
@@ -169,15 +171,30 @@ function mockarConexaoProtheus(): void
     DB::shouldReceive('connection')->with('protheus')->andReturn($conexao);
 }
 
+/**
+ * Preenche e confirma o item corrente (já com produto selecionado), sem
+ * disparar nenhum aviso — atalho usado pelos testes que só precisam de um
+ * item na lista pra testar outra coisa (editar, remover, etc).
+ */
+function preencherEConfirmarItem($component, array $dados = []): void
+{
+    $component
+        ->set('quantidade', $dados['quantidade'] ?? 2)
+        ->set('dataPrazo', $dados['dataPrazo'] ?? now()->addDays(5)->format('Y-m-d'))
+        ->set('centroCusto', $dados['centroCusto'] ?? 'ti')
+        ->set('observacao', $dados['observacao'] ?? 'Observação de teste.')
+        ->call('confirmarItem');
+}
+
 beforeEach(function () {
     mockarConexaoProtheus();
 });
 
-test('inicia sem itens e com os modais fechados', function () {
+test('inicia sem itens e com o painel e a busca fechados', function () {
     Livewire::test(SolicitacaoItens::class)
         ->assertCount('itens', 0)
         ->assertSet('buscaModalAberta', false)
-        ->assertSet('detalheModalAberta', false);
+        ->assertSet('formAberto', false);
 });
 
 test('abre e fecha o modal de busca quando há filial selecionada', function () {
@@ -232,27 +249,45 @@ test('filtra produtos por código', function () {
     expect($resultado[0]->code)->toBe('88946');
 });
 
-test('selecionar um produto fecha a busca e abre o modal de detalhes', function () {
+test('iniciar novo item abre o painel e a busca de produto quando há filial', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->assertSet('formAberto', true)
+        ->assertSet('buscaModalAberta', true)
+        ->assertSet('itemEmEdicao', null)
+        ->assertSet('quantidade', '1');
+});
+
+test('não inicia novo item sem filial selecionada', function () {
     Livewire::test(SolicitacaoItens::class)
-        ->call('abrirModalBusca')
+        ->call('iniciarNovoItem')
+        ->assertSet('formAberto', false)
+        ->assertDispatched('toast', tipo: 'error', mensagem: 'Selecione a filial antes de adicionar itens.');
+});
+
+test('selecionar um produto fecha a busca mantendo o painel do item aberto', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
         ->call('selecionarProduto', '88946')
         ->assertSet('buscaModalAberta', false)
-        ->assertSet('detalheModalAberta', true)
+        ->assertSet('formAberto', true)
         ->assertSet('produtoSelecionado.code', '88946')
         ->assertCount('itens', 0);
 });
 
-test('cancelar os detalhes fecha o modal sem adicionar o item', function () {
-    Livewire::test(SolicitacaoItens::class)
+test('cancelar o painel fecha sem adicionar o item', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
         ->call('selecionarProduto', '88946')
-        ->call('cancelarDetalhe')
-        ->assertSet('detalheModalAberta', false)
+        ->call('cancelarFormulario')
+        ->assertSet('formAberto', false)
         ->assertSet('produtoSelecionado', null)
         ->assertCount('itens', 0);
 });
 
 test('exige quantidade, data prazo, centro de custo e observação para confirmar o item', function () {
-    Livewire::test(SolicitacaoItens::class)
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
         ->call('selecionarProduto', '88946')
         ->set('quantidade', '')
         ->set('dataPrazo', '')
@@ -263,54 +298,115 @@ test('exige quantidade, data prazo, centro de custo e observação para confirma
         ->assertCount('itens', 0);
 });
 
-test('confirma o item preenchido e ele volta pra tela principal', function () {
-    Livewire::test(SolicitacaoItens::class)
+test('rejeita data prazo no passado', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
         ->call('selecionarProduto', '88946')
-        ->set('quantidade', 5)
-        ->set('dataPrazo', now()->addDays(10)->format('Y-m-d'))
-        ->set('centroCusto', 'ti')
-        ->set('observacao', 'Uso interno do setor de TI.')
+        ->set('dataPrazo', now()->subDay()->format('Y-m-d'))
         ->call('confirmarItem')
+        ->assertHasErrors(['dataPrazo']);
+});
+
+test('rejeita data prazo mais de 2 anos à frente', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('dataPrazo', now()->addYears(2)->addDay()->format('Y-m-d'))
+        ->call('confirmarItem')
+        ->assertHasErrors(['dataPrazo']);
+});
+
+test('confirma o item preenchido e ele volta pra tela principal', function () {
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+
+    preencherEConfirmarItem($component, ['quantidade' => 5, 'centroCusto' => 'ti', 'observacao' => 'Uso interno do setor de TI.']);
+
+    $component
         ->assertHasNoErrors()
-        ->assertSet('detalheModalAberta', false)
+        ->assertSet('formAberto', false)
         ->assertSet('produtoSelecionado', null)
         ->assertCount('itens', 1)
+        ->assertSet('itens.0.item', 1)
         ->assertSet('itens.0.codigo', '88946')
         ->assertSet('itens.0.quantidade', 5)
-        ->assertSet('itens.0.centro_custo', 'TI');
+        ->assertSet('itens.0.centro_custo', 'TI')
+        ->assertSet('itens.0.imagens', []);
 });
 
-test('não adiciona o mesmo produto duas vezes', function () {
+test('avisa e pede confirmação ao adicionar o mesmo produto duas vezes', function () {
     $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
-        ->call('selecionarProduto', '88946')
-        ->set('quantidade', 1)
-        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
-        ->set('centroCusto', 'comercial')
-        ->set('observacao', 'Primeira compra.')
-        ->call('confirmarItem');
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+    preencherEConfirmarItem($component);
 
-    $component->call('abrirModalBusca')
-        ->call('selecionarProduto', '88946')
-        ->assertSet('detalheModalAberta', false)
-        ->assertCount('itens', 1);
+    $component->call('iniciarNovoItem')->call('selecionarProduto', '88946');
+    preencherEConfirmarItem($component);
+
+    $component
+        ->assertSet('avisosAberto', true)
+        ->assertCount('itens', 1)
+        ->call('confirmarComAvisos')
+        ->assertCount('itens', 2)
+        ->assertSet('itens.1.item', 2);
 });
 
-test('remove um item pelo código', function () {
-    Livewire::test(SolicitacaoItens::class)
-        ->call('selecionarProduto', '88946')
-        ->set('quantidade', 2)
-        ->set('dataPrazo', now()->addDays(3)->format('Y-m-d'))
-        ->set('centroCusto', 'rh')
-        ->set('observacao', 'Solicitação do RH.')
-        ->call('confirmarItem')
-        ->call('removerItem', '88946')
+test('avisa quando a quantidade é muito alta', function () {
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+
+    preencherEConfirmarItem($component, ['quantidade' => 1500]);
+
+    $component
+        ->assertSet('avisosAberto', true)
         ->assertCount('itens', 0);
+
+    expect($component->get('avisos'))->toContain('Quantidade alta: 1500 (acima de 1000). Confira o valor digitado.');
+});
+
+test('edita um item já adicionado', function () {
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+    preencherEConfirmarItem($component, ['quantidade' => 2]);
+
+    $component
+        ->call('iniciarEdicao', 1)
+        ->assertSet('formAberto', true)
+        ->assertSet('itemEmEdicao', 1)
+        ->assertSet('produtoSelecionado.code', '88946')
+        ->assertSet('quantidade', '2')
+        ->set('quantidade', 9)
+        ->call('confirmarItem')
+        ->assertCount('itens', 1)
+        ->assertSet('itens.0.item', 1)
+        ->assertSet('itens.0.quantidade', 9);
+});
+
+test('remove um item pelo número e renumera os restantes', function () {
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()]);
+
+    $component->call('iniciarNovoItem')->call('selecionarProduto', '88946');
+    preencherEConfirmarItem($component);
+
+    $component->call('iniciarNovoItem')->call('selecionarProduto', '90211');
+    preencherEConfirmarItem($component);
+
+    $component
+        ->assertCount('itens', 2)
+        ->call('removerItem', 1)
+        ->assertCount('itens', 1)
+        ->assertSet('itens.0.codigo', '90211')
+        ->assertSet('itens.0.item', 1);
 });
 
 test('consulta o saldo em estoque (SB2010) do produto ao selecioná-lo, quando há filial', function () {
     definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
 
     Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
         ->call('selecionarProduto', '88946')
         ->assertSet('estoqueProdutoSelecionado', 3.0);
 });
@@ -324,47 +420,133 @@ test('não consulta o saldo em estoque sem filial selecionada', function () {
 test('pede confirmação antes de adicionar um produto com saldo na filial', function () {
     definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
 
-    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
-        ->call('selecionarProduto', '88946')
-        ->set('quantidade', 2)
-        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
-        ->set('centroCusto', 'ti')
-        ->set('observacao', 'Reposição de material.')
-        ->call('confirmarItem')
-        ->assertSet('avisoEstoqueAberto', true)
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+
+    preencherEConfirmarItem($component, ['centroCusto' => 'ti', 'observacao' => 'Reposição de material.']);
+
+    $component
+        ->assertSet('avisosAberto', true)
         ->assertCount('itens', 0)
-        ->call('confirmarComEstoque')
-        ->assertSet('avisoEstoqueAberto', false)
+        ->call('confirmarComAvisos')
+        ->assertSet('avisosAberto', false)
         ->assertCount('itens', 1)
         ->assertSet('itens.0.estoque_filial', 3.0);
 });
 
-test('cancelar o aviso de estoque não adiciona o item', function () {
+test('cancelar os avisos não adiciona o item', function () {
     definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
 
-    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
-        ->call('selecionarProduto', '88946')
-        ->set('quantidade', 2)
-        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
-        ->set('centroCusto', 'ti')
-        ->set('observacao', 'Reposição de material.')
-        ->call('confirmarItem')
-        ->call('cancelarAvisoEstoque')
-        ->assertSet('avisoEstoqueAberto', false)
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+
+    preencherEConfirmarItem($component, ['centroCusto' => 'ti', 'observacao' => 'Reposição de material.']);
+
+    $component
+        ->call('cancelarAvisos')
+        ->assertSet('avisosAberto', false)
         ->assertCount('itens', 0);
 });
 
 test('adiciona direto quando o produto não tem saldo na filial', function () {
     definirEstoqueDeTeste(['010101' => ['88946' => 0]]);
 
-    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
-        ->call('selecionarProduto', '88946')
-        ->set('quantidade', 2)
-        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
-        ->set('centroCusto', 'ti')
-        ->set('observacao', 'Sem estoque disponível.')
-        ->call('confirmarItem')
-        ->assertSet('avisoEstoqueAberto', false)
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946');
+
+    preencherEConfirmarItem($component, ['centroCusto' => 'ti', 'observacao' => 'Sem estoque disponível.']);
+
+    $component
+        ->assertSet('avisosAberto', false)
         ->assertCount('itens', 1)
         ->assertSet('itens.0.estoque_filial', 0.0);
 });
+
+test('envia uma imagem válida do item', function () {
+    Storage::fake('public');
+
+    $arquivo = UploadedFile::fake()->image('foto.jpg', 100, 100)->size(500);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('novaImagem', $arquivo)
+        ->assertCount('imagens', 1)
+        ->tap(function ($component) {
+            Storage::disk('public')->assertExists($component->get('imagens')[0]);
+        });
+})->skip(! extension_loaded('gd'), 'Requer a extensão GD pra gerar imagens falsas no teste.');
+
+test('rejeita arquivo que não é imagem', function () {
+    Storage::fake('public');
+
+    $arquivo = UploadedFile::fake()->create('documento.pdf', 100, 'application/pdf');
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('novaImagem', $arquivo)
+        ->assertHasErrors(['novaImagem'])
+        ->assertCount('imagens', 0);
+});
+
+test('rejeita imagem maior que 5 MB', function () {
+    Storage::fake('public');
+
+    $arquivo = UploadedFile::fake()->image('foto.jpg')->size(6000);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('novaImagem', $arquivo)
+        ->assertHasErrors(['novaImagem'])
+        ->assertCount('imagens', 0);
+})->skip(! extension_loaded('gd'), 'Requer a extensão GD pra gerar imagens falsas no teste.');
+
+test('remove uma imagem já enviada', function () {
+    Storage::fake('public');
+
+    $arquivo = UploadedFile::fake()->image('foto.jpg')->size(500);
+
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('novaImagem', $arquivo);
+
+    $caminho = $component->get('imagens')[0];
+
+    $component->call('removerImagem', $caminho)
+        ->assertCount('imagens', 0);
+
+    Storage::disk('public')->assertMissing($caminho);
+})->skip(! extension_loaded('gd'), 'Requer a extensão GD pra gerar imagens falsas no teste.');
+
+test('não envia uma quinta imagem além do limite', function () {
+    Storage::fake('public');
+
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('imagens', ['a.jpg', 'b.jpg', 'c.jpg']);
+
+    $component
+        ->set('novaImagem', UploadedFile::fake()->image('foto.jpg')->size(100))
+        ->assertCount('imagens', 3)
+        ->assertDispatched('toast', tipo: 'error', mensagem: 'Limite de 3 imagens atingido.');
+})->skip(! extension_loaded('gd'), 'Requer a extensão GD pra gerar imagens falsas no teste.');
+
+test('as imagens do item ficam salvas junto com o item confirmado', function () {
+    Storage::fake('public');
+
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->set('novaImagem', UploadedFile::fake()->image('foto.jpg')->size(500));
+
+    preencherEConfirmarItem($component);
+
+    expect($component->get('itens.0.imagens'))->toHaveCount(1);
+})->skip(! extension_loaded('gd'), 'Requer a extensão GD pra gerar imagens falsas no teste.');

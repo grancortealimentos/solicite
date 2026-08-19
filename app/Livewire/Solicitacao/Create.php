@@ -32,6 +32,13 @@ class Create extends Component
      */
     public array $itens = [];
 
+    public bool $confirmacaoAberta = false;
+
+    /**
+     * @var array<int, string>
+     */
+    public array $problemas = [];
+
     private FilialProtheusService $filialProtheusService;
 
     public function boot(FilialProtheusService $filialProtheusService): void
@@ -80,6 +87,34 @@ class Create extends Component
     public function sincronizarItens(array $itens): void
     {
         $this->itens = $itens;
+    }
+
+    /**
+     * Revalida filial e itens; se estiver tudo certo, abre a tela de revisão
+     * antes de gravar de fato (evita salvar sem o usuário conferir os dados).
+     */
+    public function abrirConfirmacao(): void
+    {
+        $this->problemas = [];
+
+        if (! $this->filial) {
+            $this->problemas[] = 'Escolha a filial da solicitação.';
+        }
+
+        if (empty($this->itens)) {
+            $this->problemas[] = 'Adicione pelo menos um item antes de salvar.';
+        }
+
+        if (! empty($this->problemas)) {
+            return;
+        }
+
+        $this->confirmacaoAberta = true;
+    }
+
+    public function voltarParaEdicao(): void
+    {
+        $this->confirmacaoAberta = false;
     }
 
     public function salvar(SolicitacaoService $solicitacaoService): void

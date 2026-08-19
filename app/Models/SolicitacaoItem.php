@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'solicitacao_id',
+    'item',
     'codigo',
     'descricao',
     'unidade_medida',
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'data_prazo',
     'observacao',
     'centro_custo',
+    'imagens',
 ])]
 class SolicitacaoItem extends Model
 {
@@ -32,6 +34,7 @@ class SolicitacaoItem extends Model
     {
         return [
             'data_prazo' => 'date',
+            'imagens' => 'array',
         ];
     }
 

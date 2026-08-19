@@ -20,6 +20,7 @@ class SolicitacaoItemFactory extends Factory
     {
         return [
             'solicitacao_id' => Solicitacao::factory(),
+            'item' => 1,
             'codigo' => fake()->unique()->numerify('#####'),
             'descricao' => fake()->words(3, true),
             'unidade_medida' => 'UN',

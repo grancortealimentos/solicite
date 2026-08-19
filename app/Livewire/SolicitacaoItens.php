@@ -5,15 +5,27 @@ namespace App\Livewire;
 use App\DTOs\Protheus\ItemProtheusData;
 use App\Services\Protheus\EstoqueProtheusService;
 use App\Services\Protheus\ItemProtheusService;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class SolicitacaoItens extends Component
 {
+    use WithFileUploads;
+
+    /** Acima disso pedimos confirmação (evita erro de digitação). */
+    private const QUANTIDADE_ALTA = 1000;
+
+    /** Limite máximo de anos à frente para a data prazo. */
+    private const MAX_ANOS_PREVISAO = 2;
+
+    private const MAX_IMAGENS_POR_ITEM = 3;
+
     /**
-     * @var array<int, array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}>
+     * @var array<int, array{item: int, codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float, imagens: array<int, string>}>
      */
     public array $itens = [];
 
@@ -37,7 +49,16 @@ class SolicitacaoItens extends Component
 
     public int $porPagina = 20;
 
-    public bool $detalheModalAberta = false;
+    /**
+     * Painel inline (não modal) com o formulário do item — aberto tanto pra
+     * incluir um item novo quanto pra editar um já existente.
+     */
+    public bool $formAberto = false;
+
+    /**
+     * Número do item (posição em $itens) em edição; null quando é um item novo.
+     */
+    public ?int $itemEmEdicao = null;
 
     /**
      * @var array{code: string, description: string, type: string, location: string, unitMeasurement: string, account: string, group: string, groupDescription: string}|null
@@ -58,13 +79,30 @@ class SolicitacaoItens extends Component
      */
     public ?float $estoqueProdutoSelecionado = null;
 
-    public bool $avisoEstoqueAberto = false;
+    /**
+     * Caminhos (disco 'public') das imagens já enviadas pro item em edição.
+     *
+     * @var array<int, string>
+     */
+    public array $imagens = [];
 
     /**
-     * Item já validado, aguardando confirmação do usuário no aviso de
-     * estoque antes de entrar de fato em $itens.
+     * Upload temporário corrente, processado assim que chega (updatedNovaImagem).
+     */
+    public $novaImagem = null;
+
+    /**
+     * Avisos (não bloqueantes) pendentes de confirmação antes de gravar o item:
+     * item duplicado, quantidade alta, produto com saldo na filial.
      *
-     * @var array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}|null
+     * @var array<int, string>
+     */
+    public array $avisos = [];
+
+    public bool $avisosAberto = false;
+
+    /**
+     * @var array{item: int, codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float, imagens: array<int, string>}|null
      */
     public ?array $itemPendente = null;
 
@@ -143,6 +181,79 @@ class SolicitacaoItens extends Component
         $this->pagina = max(1, $this->pagina - 1);
     }
 
+    /**
+     * Abre o painel do item já com a busca de produto em cima, pra incluir um
+     * item novo. Trava se ainda não há filial selecionada.
+     */
+    public function iniciarNovoItem(): void
+    {
+        if (! $this->filial) {
+            $this->dispatch('toast', tipo: 'error', mensagem: 'Selecione a filial antes de adicionar itens.');
+
+            return;
+        }
+
+        $this->limparFormulario();
+        $this->itemEmEdicao = null;
+        $this->formAberto = true;
+
+        $this->abrirModalBusca();
+    }
+
+    /**
+     * Abre o painel já preenchido com os dados de um item existente, pronto
+     * pra edição (sem reabrir a busca de produto).
+     */
+    public function iniciarEdicao(int $item): void
+    {
+        $dados = collect($this->itens)->firstWhere('item', $item);
+
+        if (! $dados) {
+            return;
+        }
+
+        $this->produtoSelecionado = [
+            'code' => $dados['codigo'],
+            'description' => $dados['descricao'],
+            'type' => '',
+            'location' => $dados['armazem'],
+            'unitMeasurement' => $dados['unidade_medida'],
+            'account' => $dados['cta_contabil'],
+            'group' => '',
+            'groupDescription' => $dados['grupo_produto'],
+        ];
+        $this->quantidade = (string) $dados['quantidade'];
+        $this->dataPrazo = (string) $dados['data_prazo'];
+        $this->observacao = (string) $dados['observacao'];
+        $this->centroCusto = array_search($dados['centro_custo'], $this->centrosCusto(), true) ?: '';
+        $this->imagens = $dados['imagens'] ?? [];
+        $this->estoqueProdutoSelecionado = $dados['estoque_filial'] ?? null;
+        $this->resetValidation();
+
+        $this->itemEmEdicao = $item;
+        $this->formAberto = true;
+        $this->buscaModalAberta = false;
+    }
+
+    public function cancelarFormulario(): void
+    {
+        $this->formAberto = false;
+        $this->itemEmEdicao = null;
+        $this->limparFormulario();
+    }
+
+    private function limparFormulario(): void
+    {
+        $this->produtoSelecionado = null;
+        $this->quantidade = '1';
+        $this->dataPrazo = '';
+        $this->observacao = '';
+        $this->centroCusto = '';
+        $this->imagens = [];
+        $this->estoqueProdutoSelecionado = null;
+        $this->resetValidation();
+    }
+
     public function abrirModalBusca(): void
     {
         if (! $this->filial) {
@@ -163,14 +274,6 @@ class SolicitacaoItens extends Component
 
     public function selecionarProduto(string $codigo): void
     {
-        $jaAdicionado = collect($this->itens)->contains('codigo', $codigo);
-
-        if ($jaAdicionado) {
-            $this->fecharModalBusca();
-
-            return;
-        }
-
         $produto = $this->service->findByCode($codigo);
 
         if (! $produto) {
@@ -180,10 +283,6 @@ class SolicitacaoItens extends Component
         }
 
         $this->produtoSelecionado = $produto->toArray();
-        $this->quantidade = '';
-        $this->dataPrazo = '';
-        $this->observacao = '';
-        $this->centroCusto = '';
         $this->resetValidation();
 
         $this->estoqueProdutoSelecionado = $this->filial
@@ -191,26 +290,59 @@ class SolicitacaoItens extends Component
             : null;
 
         $this->buscaModalAberta = false;
-        $this->detalheModalAberta = true;
     }
 
-    public function cancelarDetalhe(): void
+    /**
+     * Processa o upload assim que o arquivo chega (input com wire:model).
+     */
+    public function updatedNovaImagem(): void
     {
-        $this->detalheModalAberta = false;
-        $this->produtoSelecionado = null;
-        $this->estoqueProdutoSelecionado = null;
+        if (! $this->novaImagem) {
+            return;
+        }
+
+        if (count($this->imagens) >= self::MAX_IMAGENS_POR_ITEM) {
+            $this->dispatch('toast', tipo: 'error', mensagem: 'Limite de '.self::MAX_IMAGENS_POR_ITEM.' imagens atingido.');
+            $this->novaImagem = null;
+
+            return;
+        }
+
+        $this->validate([
+            'novaImagem' => ['required', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+        ]);
+
+        $this->imagens[] = $this->novaImagem->store('solicitacao-itens', 'public');
+        $this->novaImagem = null;
+
+        $this->dispatch('toast', tipo: 'success', mensagem: 'Imagem adicionada.');
+    }
+
+    public function removerImagem(string $caminho): void
+    {
+        Storage::disk('public')->delete($caminho);
+
+        $this->imagens = array_values(array_filter($this->imagens, fn (string $i): bool => $i !== $caminho));
     }
 
     public function confirmarItem(): void
     {
         $dados = $this->validate([
             'quantidade' => ['required', 'integer', 'min:1'],
-            'dataPrazo' => ['required', 'date'],
+            'dataPrazo' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:'.now()->addYears(self::MAX_ANOS_PREVISAO)->format('Y-m-d'),
+            ],
             'observacao' => ['required', 'string', 'max:500'],
             'centroCusto' => ['required', Rule::in(array_keys($this->centrosCusto()))],
         ]);
 
+        $numeroItem = $this->itemEmEdicao ?? (count($this->itens) + 1);
+
         $item = [
+            'item' => $numeroItem,
             'codigo' => $this->produtoSelecionado['code'],
             'descricao' => $this->produtoSelecionado['description'],
             'unidade_medida' => $this->produtoSelecionado['unitMeasurement'],
@@ -222,57 +354,86 @@ class SolicitacaoItens extends Component
             'observacao' => $dados['observacao'],
             'centro_custo' => $this->centrosCusto()[$dados['centroCusto']],
             'estoque_filial' => $this->estoqueProdutoSelecionado ?? 0,
+            'imagens' => $this->imagens,
         ];
 
+        $avisos = [];
+
+        $duplicado = collect($this->itens)
+            ->first(fn (array $i): bool => $i['codigo'] === $item['codigo'] && $i['item'] !== $numeroItem);
+
+        if ($duplicado) {
+            $avisos[] = "Este produto já foi adicionado no item {$duplicado['item']}. Deseja adicionar mesmo assim?";
+        }
+
+        if ($dados['quantidade'] > self::QUANTIDADE_ALTA) {
+            $avisos[] = "Quantidade alta: {$dados['quantidade']} (acima de ".self::QUANTIDADE_ALTA.'). Confira o valor digitado.';
+        }
+
         if ($this->filial && $this->estoqueProdutoSelecionado > 0) {
+            $unidade = $this->estoqueProdutoSelecionado > 1 ? 'unidades' : 'unidade';
+            $avisos[] = "O produto {$item['descricao']} tem {$this->estoqueProdutoSelecionado} {$unidade} no estoque da filial. Tem certeza que deseja pedir?";
+        }
+
+        if (! empty($avisos)) {
             $this->itemPendente = $item;
-            $this->avisoEstoqueAberto = true;
+            $this->avisos = $avisos;
+            $this->avisosAberto = true;
 
             return;
         }
 
-        $this->adicionarItem($item);
+        $this->adicionarOuAtualizarItem($item);
     }
 
     /**
-     * Usuário confirmou que quer pedir mesmo o produto tendo saldo na filial.
+     * Usuário confirmou que quer seguir mesmo com os avisos exibidos.
      */
-    public function confirmarComEstoque(): void
+    public function confirmarComAvisos(): void
     {
         if (! $this->itemPendente) {
             return;
         }
 
-        $this->adicionarItem($this->itemPendente);
+        $this->adicionarOuAtualizarItem($this->itemPendente);
     }
 
-    public function cancelarAvisoEstoque(): void
+    public function cancelarAvisos(): void
     {
-        $this->avisoEstoqueAberto = false;
+        $this->avisosAberto = false;
+        $this->avisos = [];
         $this->itemPendente = null;
     }
 
     /**
-     * @param  array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}  $item
+     * @param  array{item: int, codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float, imagens: array<int, string>}  $item
      */
-    private function adicionarItem(array $item): void
+    private function adicionarOuAtualizarItem(array $item): void
     {
-        $this->itens[] = $item;
+        if ($this->itemEmEdicao !== null) {
+            $this->itens = collect($this->itens)
+                ->map(fn (array $i): array => $i['item'] === $item['item'] ? $item : $i)
+                ->all();
+        } else {
+            $this->itens[] = $item;
+        }
 
-        $this->detalheModalAberta = false;
-        $this->produtoSelecionado = null;
-        $this->estoqueProdutoSelecionado = null;
-        $this->avisoEstoqueAberto = false;
+        $this->avisosAberto = false;
+        $this->avisos = [];
         $this->itemPendente = null;
+
+        $this->cancelarFormulario();
 
         $this->dispatch('itens-atualizados', itens: $this->itens);
     }
 
-    public function removerItem(string $codigo): void
+    public function removerItem(int $item): void
     {
-        $this->itens = array_values(
-            array_filter($this->itens, fn (array $item): bool => $item['codigo'] !== $codigo)
-        );
+        $this->itens = collect($this->itens)
+            ->reject(fn (array $i): bool => $i['item'] === $item)
+            ->values()
+            ->map(fn (array $i, int $indice): array => [...$i, 'item' => $indice + 1])
+            ->all();
 
         $this->dispatch('itens-atualizados', itens: $this->itens);
     }
