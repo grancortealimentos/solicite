@@ -28,6 +28,14 @@ class Index extends Component
     #[Url(as: 'emitida_de', except: '')]
     public string $emitidaDe = '';
 
+    #[Url(as: 'emitida_ate', except: '')]
+    public string $emitidaAte = '';
+
+    /**
+     * Quantidade de solicitações exibidas por página, ajustável pelo usuário.
+     */
+    public int $porPagina = 10;
+
     public bool $filtrosAbertos = false;
 
     public function mount(): void
@@ -50,9 +58,19 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatedEmitidaAte(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedPorPagina(): void
+    {
+        $this->resetPage();
+    }
+
     public function temFiltroAvancado(): bool
     {
-        return $this->filtroStatus !== '' || $this->emitidaDe !== '';
+        return $this->filtroStatus !== '' || $this->emitidaDe !== '' || $this->emitidaAte !== '';
     }
 
     public function temQualquerFiltro(): bool
@@ -62,7 +80,7 @@ class Index extends Component
 
     public function limparFiltros(): void
     {
-        $this->reset(['busca', 'filtroStatus', 'emitidaDe']);
+        $this->reset(['busca', 'filtroStatus', 'emitidaDe', 'emitidaAte']);
         $this->resetPage();
     }
 
@@ -95,7 +113,8 @@ class Index extends Component
             'search' => $this->busca,
             'status' => $this->filtroStatus,
             'emitida_de' => $this->emitidaDe,
-        ]);
+            'emitida_ate' => $this->emitidaAte,
+        ], $this->porPagina);
 
         return view('livewire.solicitacao.index', compact('solicitacoes'));
     }

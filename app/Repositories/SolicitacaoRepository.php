@@ -34,6 +34,7 @@ class SolicitacaoRepository
         $busca = $filtros['search'] ?? null;
         $status = $filtros['status'] ?? null;
         $emitidaDe = $filtros['emitida_de'] ?? null;
+        $emitidaAte = $filtros['emitida_ate'] ?? null;
         $buscaNumerica = $busca ? preg_replace('/\D/', '', $busca) : null;
 
         return Solicitacao::query()
@@ -64,6 +65,10 @@ class SolicitacaoRepository
             ->when(
                 filled($emitidaDe),
                 fn ($query) => $query->whereDate('created_at', '>=', $emitidaDe)
+            )
+            ->when(
+                filled($emitidaAte),
+                fn ($query) => $query->whereDate('created_at', '<=', $emitidaAte)
             )
             ->latest()
             ->paginate($porPagina)

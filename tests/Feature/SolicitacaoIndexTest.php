@@ -61,6 +61,38 @@ test('filtra solicitações por status', function () {
         ->assertViewHas('solicitacoes', fn ($solicitacoes) => $solicitacoes->total() === 1);
 });
 
+test('filtra solicitações por período de emissão (de/até)', function () {
+    $user = User::factory()->create();
+    $user->givePermissionTo('solicitacao.visualizar');
+
+    $dentroPeriodo = Solicitacao::factory()->for($user, 'solicitante')->create(['created_at' => '2026-08-10']);
+    Solicitacao::factory()->for($user, 'solicitante')->create(['created_at' => '2026-08-01']);
+    Solicitacao::factory()->for($user, 'solicitante')->create(['created_at' => '2026-08-20']);
+
+    Livewire::actingAs($user)
+        ->test(Index::class)
+        ->set('emitidaDe', '2026-08-05')
+        ->set('emitidaAte', '2026-08-15')
+        ->assertViewHas(
+            'solicitacoes',
+            fn ($solicitacoes) => $solicitacoes->total() === 1
+                && $solicitacoes->first()->is($dentroPeriodo)
+        );
+});
+
+test('troca a quantidade de itens por página', function () {
+    $user = User::factory()->create();
+    $user->givePermissionTo('solicitacao.visualizar');
+
+    Solicitacao::factory()->count(6)->for($user, 'solicitante')->create();
+
+    Livewire::actingAs($user)
+        ->test(Index::class)
+        ->set('porPagina', 5)
+        ->assertViewHas('solicitacoes', fn ($solicitacoes) => $solicitacoes->perPage() === 5
+            && $solicitacoes->count() === 5);
+});
+
 test('limpar filtros reseta busca e filtros avançados', function () {
     $user = User::factory()->create();
     $user->givePermissionTo('solicitacao.visualizar');
@@ -69,10 +101,12 @@ test('limpar filtros reseta busca e filtros avançados', function () {
         ->test(Index::class)
         ->set('busca', 'algo')
         ->set('filtroStatus', 'pendente')
+        ->set('emitidaAte', '2026-08-15')
         ->assertSet('busca', 'algo')
         ->call('limparFiltros')
         ->assertSet('busca', '')
-        ->assertSet('filtroStatus', '');
+        ->assertSet('filtroStatus', '')
+        ->assertSet('emitidaAte', '');
 });
 
 test('solicitante cancela a própria solicitação pendente', function () {

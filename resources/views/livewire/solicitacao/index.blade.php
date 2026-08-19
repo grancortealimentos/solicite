@@ -60,56 +60,63 @@
                 </div>
             </div>
 
-            {{-- Filtros Avançados: no FIM da linha --}}
-            <button type="button" wire:click="$toggle('filtrosAbertos')"
-                class="ms-auto py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-accent border border-transparent text-white hover:bg-accent-hover focus:outline-hidden">
-                <svg class="shrink-0 size-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                    stroke-linejoin="round">
-                    <path d="M3 6h18" />
-                    <path d="M7 12h10" />
-                    <path d="M10 18h4" />
-                </svg>
-                {{ __('Filtros Avançados') }}
-                @if ($this->temFiltroAvancado())
-                    <span
-                        class="inline-flex items-center justify-center size-5 rounded-full bg-white/20 text-[10px] font-semibold">
-                        {{ collect([$filtroStatus, $emitidaDe])->filter(fn($v) => $v !== '')->count() }}
-                    </span>
-                @endif
-                <svg class="shrink-0 size-3.5 transition-transform {{ $filtrosAbertos ? 'rotate-180' : '' }}"
-                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m6 9 6 6 6-6" />
-                </svg>
-            </button>
-        </div>
+            {{-- Filtros Avançados: popover ancorado no fim da linha --}}
+            <div class="ms-auto relative" x-data x-on:click.outside="$wire.filtrosAbertos && $wire.set('filtrosAbertos', false)">
+                <button type="button" wire:click="$toggle('filtrosAbertos')"
+                    class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-accent border border-transparent text-white hover:bg-accent-hover focus:outline-hidden">
+                    <svg class="shrink-0 size-3.5" xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M3 6h18" />
+                        <path d="M7 12h10" />
+                        <path d="M10 18h4" />
+                    </svg>
+                    {{ __('Filtros Avançados') }}
+                    @if ($this->temFiltroAvancado())
+                        <span
+                            class="inline-flex items-center justify-center size-5 rounded-full bg-white/20 text-[10px] font-semibold">
+                            {{ collect([$filtroStatus, $emitidaDe, $emitidaAte])->filter(fn($v) => $v !== '')->count() }}
+                        </span>
+                    @endif
+                    <svg class="shrink-0 size-3.5 transition-transform {{ $filtrosAbertos ? 'rotate-180' : '' }}"
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m6 9 6 6 6-6" />
+                    </svg>
+                </button>
 
-        {{-- Card de filtros avançados: abre ABAIXO --}}
-        @if ($filtrosAbertos)
-            <div class="px-6 py-5 border-t border-border bg-canvas/40">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {{-- Painel do popover: flutua sobre o conteúdo, não empurra o layout --}}
+                @if ($filtrosAbertos)
+                    <div
+                        class="absolute end-0 top-full mt-2 w-full sm:w-80 z-30 bg-surface border border-border rounded-xl shadow-lg p-5 space-y-4">
+                        <div>
+                            <label class="block text-xs font-medium text-ink-muted mb-1.5">{{ __('Status') }}</label>
+                            <select wire:model.live="filtroStatus"
+                                class="py-2 px-3 block w-full bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
+                                <option value="">{{ __('Todos os status') }}</option>
+                                <option value="pendente">{{ __('Pendente') }}</option>
+                                <option value="aprovada">{{ __('Aprovada') }}</option>
+                                <option value="rejeitada">{{ __('Rejeitada') }}</option>
+                                <option value="cancelada">{{ __('Cancelada') }}</option>
+                            </select>
+                        </div>
 
-                    <div>
-                        <label class="block text-xs font-medium text-ink-muted mb-1.5">{{ __('Status') }}</label>
-                        <select wire:model.live="filtroStatus"
-                            class="py-2 px-3 block w-full bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
-                            <option value="">{{ __('Todos os status') }}</option>
-                            <option value="pendente">{{ __('Pendente') }}</option>
-                            <option value="aprovada">{{ __('Aprovada') }}</option>
-                            <option value="rejeitada">{{ __('Rejeitada') }}</option>
-                            <option value="cancelada">{{ __('Cancelada') }}</option>
-                        </select>
-                    </div>
+                        <div>
+                            <label class="block text-xs font-medium text-ink-muted mb-1.5">{{ __('Período de emissão') }}</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] text-ink-muted mb-1">{{ __('De') }}</label>
+                                    <input type="date" wire:model.live="emitidaDe"
+                                        class="py-2 px-3 block w-full bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-ink-muted mb-1">{{ __('Até') }}</label>
+                                    <input type="date" wire:model.live="emitidaAte"
+                                        class="py-2 px-3 block w-full bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
+                                </div>
+                            </div>
+                        </div>
 
-                    <div>
-                        <label
-                            class="block text-xs font-medium text-ink-muted mb-1.5">{{ __('Emitida a partir de') }}</label>
-                        <input type="date" wire:model.live="emitidaDe"
-                            class="py-2 px-3 block w-full bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
-                    </div>
-
-                    <div class="flex items-end">
                         @if ($this->temQualquerFiltro())
                             <button type="button" wire:click="limparFiltros"
                                 class="w-full py-2 px-4 inline-flex justify-center items-center text-sm font-medium rounded-lg bg-surface-hover border border-border text-ink-muted hover:text-ink">
@@ -117,9 +124,9 @@
                             </button>
                         @endif
                     </div>
-                </div>
+                @endif
             </div>
-        @endif
+        </div>
 
         {{-- Chips dos filtros ativos --}}
         @if ($this->temQualquerFiltro())
@@ -143,6 +150,12 @@
                 @if ($emitidaDe !== '')
                     <span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs bg-warn/15 text-warn">
                         {{ __('Desde') }} {{ \Carbon\Carbon::parse($emitidaDe)->format('d/m/Y') }}
+                    </span>
+                @endif
+
+                @if ($emitidaAte !== '')
+                    <span class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs bg-warn/15 text-warn">
+                        {{ __('Até') }} {{ \Carbon\Carbon::parse($emitidaAte)->format('d/m/Y') }}
                     </span>
                 @endif
             </div>
@@ -221,7 +234,9 @@
                                         ['bg' => 'bg-rose-500/20', 'text' => 'text-rose-400'],
                                         ['bg' => 'bg-cyan-500/20', 'text' => 'text-cyan-400'],
                                     ];
-                                    $avatarStyle = $avatarStyles[$solicitacao->user_id % count($avatarStyles)];
+                                    $nomeSolicitante = $solicitacao->solicitante?->name ?? '?';
+                                    $somaNome = collect(mb_str_split($nomeSolicitante))->sum(fn ($c) => mb_ord($c));
+                                    $avatarStyle = $avatarStyles[$somaNome % count($avatarStyles)];
                                 @endphp
                                 <tr wire:key="solicitacao-{{ $solicitacao->id }}" class="hover:bg-surface-hover">
                                     <td class="size-px whitespace-nowrap">
@@ -257,7 +272,7 @@
                                     <td class="size-px whitespace-nowrap">
                                         <div class="px-6 py-3">
                                             <span
-                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-full text-xs font-medium bg-border/40 text-ink-muted">
+                                                class="inline-flex items-center gap-1.5 py-1 px-2 rounded-full text-xs font-medium bg-surface-hover text-ink-muted">
                                                 {{ trans_choice(':count item|:count itens', $solicitacao->itens_count, ['count' => $solicitacao->itens_count]) }}
                                             </span>
                                         </div>
@@ -309,13 +324,26 @@
                                             <circle cx="19" cy="21" r="1" />
                                             <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12" />
                                         </svg>
-                                        <p class="text-sm text-ink-muted">
+                                        <p class="text-sm font-semibold text-ink">
                                             @if ($this->temQualquerFiltro())
-                                                {{ __('Nenhuma solicitação encontrada com esses filtros.') }}
+                                                {{ __('Nenhuma solicitação encontrada') }}
                                             @else
-                                                {{ __('Nenhuma solicitação cadastrada ainda.') }}
+                                                {{ __('Nenhuma solicitação cadastrada ainda') }}
                                             @endif
                                         </p>
+                                        <p class="text-sm text-ink-muted mt-1">
+                                            @if ($this->temQualquerFiltro())
+                                                {{ __('Ajuste a busca ou crie uma nova solicitação.') }}
+                                            @else
+                                                {{ __('Crie a primeira solicitação de compra.') }}
+                                            @endif
+                                        </p>
+                                        @can('solicitacao.criar')
+                                            <a href="{{ route('solicitacao.create') }}" wire:navigate
+                                                class="mt-4 inline-flex items-center gap-x-2 py-2 px-4 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover">
+                                                {{ __('Criar solicitação') }}
+                                            </a>
+                                        @endcan
                                     </td>
                                 </tr>
                             @endforelse
@@ -323,17 +351,47 @@
                     </table>
 
                     {{-- Footer --}}
-                    <div class="px-6 py-4 grid gap-3 md:flex md:justify-between md:items-center border-t border-border">
-                        <div>
+                    @if ($solicitacoes->total() > 0)
+                        <div
+                            class="px-6 py-4 flex flex-wrap items-center justify-between gap-4 border-t border-border">
                             <p class="text-sm text-ink-muted">
+                                {{ __('Mostrando') }}
+                                <span class="font-semibold text-ink">{{ $solicitacoes->firstItem() }}–{{ $solicitacoes->lastItem() }}</span>
+                                {{ __('de') }}
                                 <span class="font-semibold text-ink">{{ $solicitacoes->total() }}</span>
-                                {{ trans_choice('solicitação encontrada|solicitações encontradas', $solicitacoes->total()) }}
+                                {{ trans_choice('solicitação|solicitações', $solicitacoes->total()) }}
                             </p>
+
+                            <div class="flex flex-wrap items-center gap-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-ink-muted">{{ __('Itens por página') }}</span>
+                                    <select wire:model.live="porPagina"
+                                        class="py-1.5 px-2.5 bg-canvas border-border rounded-lg text-sm text-ink focus:border-primary focus:ring-primary">
+                                        @foreach ([5, 10, 20, 50] as $opcao)
+                                            <option value="{{ $opcao }}">{{ $opcao }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <button type="button" wire:click="previousPage" @disabled($solicitacoes->onFirstPage())
+                                        class="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-border text-ink hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors">
+                                        <i class="bi bi-chevron-left"></i>
+                                        {{ __('Anterior') }}
+                                    </button>
+                                    <span class="text-sm text-ink-muted">
+                                        {{ __('Página') }} <span class="font-semibold text-ink">{{ $solicitacoes->currentPage() }}</span>
+                                        {{ __('de') }} <span class="font-semibold text-ink">{{ $solicitacoes->lastPage() }}</span>
+                                    </span>
+                                    <button type="button" wire:click="nextPage" @disabled(! $solicitacoes->hasMorePages())
+                                        class="py-2 px-3 inline-flex items-center gap-x-1 text-sm font-medium rounded-lg border border-border text-ink hover:bg-surface-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors">
+                                        {{ __('Próxima') }}
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            {{ $solicitacoes->links() }}
-                        </div>
-                    </div>
+                    @endif
                 </div>
             </div>
         </div>
