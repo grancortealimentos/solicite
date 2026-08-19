@@ -141,7 +141,7 @@ class SolicitacaoItens extends Component
         }
 
         return collect($this->centroCustoService->porFilial($this->filial['code']))
-            ->mapWithKeys(fn ($centroCusto) => [$centroCusto->codigo => $centroCusto->descricao])
+            ->mapWithKeys(fn ($centroCusto) => [$centroCusto->codigo => "{$centroCusto->codigo} - {$centroCusto->descricao}"])
             ->all();
     }
 

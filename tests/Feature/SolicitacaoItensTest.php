@@ -285,11 +285,11 @@ test('lista os centros de custo (VW_SOLICITE_CENTROCUSTOS) da filial selecionada
     $centros = $component->instance()->centrosCustoDisponiveis();
 
     expect($centros)->toBe([
-        'comercial' => 'Comercial',
-        'ti' => 'TI',
-        'rh' => 'RH',
-        'dp' => 'DP',
-        'financeiro' => 'Financeiro',
+        'comercial' => 'comercial - Comercial',
+        'ti' => 'ti - TI',
+        'rh' => 'rh - RH',
+        'dp' => 'dp - DP',
+        'financeiro' => 'financeiro - Financeiro',
     ]);
 });
 
@@ -381,7 +381,7 @@ test('confirma o item preenchido e ele volta pra tela principal', function () {
         ->assertSet('itens.0.item', 1)
         ->assertSet('itens.0.codigo', '88946')
         ->assertSet('itens.0.quantidade', 5)
-        ->assertSet('itens.0.centro_custo', 'TI')
+        ->assertSet('itens.0.centro_custo', 'ti - TI')
         ->assertSet('itens.0.imagens', []);
 });
 
