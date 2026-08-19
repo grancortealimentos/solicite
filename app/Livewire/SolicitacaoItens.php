@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\DTOs\Protheus\ItemProtheusData;
+use App\Services\Protheus\CentroCustoProtheusService;
 use App\Services\Protheus\EstoqueProtheusService;
 use App\Services\Protheus\ItemProtheusService;
 use Illuminate\Support\Facades\Storage;
@@ -114,35 +115,34 @@ class SolicitacaoItens extends Component
 
     private EstoqueProtheusService $estoqueService;
 
-    public function boot(ItemProtheusService $service, EstoqueProtheusService $estoqueService): void
-    {
+    private CentroCustoProtheusService $centroCustoService;
+
+    public function boot(
+        ItemProtheusService $service,
+        EstoqueProtheusService $estoqueService,
+        CentroCustoProtheusService $centroCustoService,
+    ): void {
         $this->service = $service;
         $this->estoqueService = $estoqueService;
+        $this->centroCustoService = $centroCustoService;
     }
 
     /**
-     * Centros de custo somente leitura, usados até existir a integração com a tabela de centros de custo do Protheus.
+     * Centros de custo da filial atual (VW_SOLICITE_CENTROCUSTOS), no formato
+     * código => descrição pra popular o select. Vazio sem filial selecionada.
      *
-     * @return array<string, string>
-     */
-    protected function centrosCusto(): array
-    {
-        return [
-            'comercial' => 'Comercial',
-            'ti' => 'TI',
-            'rh' => 'RH',
-            'dp' => 'DP',
-            'financeiro' => 'Financeiro',
-        ];
-    }
-
-    /**
      * @return array<string, string>
      */
     #[Computed]
     public function centrosCustoDisponiveis(): array
     {
-        return $this->centrosCusto();
+        if (! $this->filial) {
+            return [];
+        }
+
+        return collect($this->centroCustoService->porFilial($this->filial['code']))
+            ->mapWithKeys(fn ($centroCusto) => [$centroCusto->codigo => $centroCusto->descricao])
+            ->all();
     }
 
     /**
@@ -225,7 +225,7 @@ class SolicitacaoItens extends Component
         $this->quantidade = (string) $dados['quantidade'];
         $this->dataPrazo = (string) $dados['data_prazo'];
         $this->observacao = (string) $dados['observacao'];
-        $this->centroCusto = array_search($dados['centro_custo'], $this->centrosCusto(), true) ?: '';
+        $this->centroCusto = array_search($dados['centro_custo'], $this->centrosCustoDisponiveis(), true) ?: '';
         $this->imagens = $dados['imagens'] ?? [];
         $this->estoqueProdutoSelecionado = $dados['estoque_filial'] ?? null;
         $this->resetValidation();
@@ -336,7 +336,7 @@ class SolicitacaoItens extends Component
                 'before_or_equal:'.now()->addYears(self::MAX_ANOS_PREVISAO)->format('Y-m-d'),
             ],
             'observacao' => ['required', 'string', 'max:500'],
-            'centroCusto' => ['required', Rule::in(array_keys($this->centrosCusto()))],
+            'centroCusto' => ['required', Rule::in(array_keys($this->centrosCustoDisponiveis()))],
         ]);
 
         $numeroItem = $this->itemEmEdicao ?? (count($this->itens) + 1);
@@ -352,7 +352,7 @@ class SolicitacaoItens extends Component
             'quantidade' => $dados['quantidade'],
             'data_prazo' => $dados['dataPrazo'],
             'observacao' => $dados['observacao'],
-            'centro_custo' => $this->centrosCusto()[$dados['centroCusto']],
+            'centro_custo' => $this->centrosCustoDisponiveis()[$dados['centroCusto']],
             'estoque_filial' => $this->estoqueProdutoSelecionado ?? 0,
             'imagens' => $this->imagens,
         ];

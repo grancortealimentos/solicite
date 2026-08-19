@@ -88,6 +88,30 @@ function filtrarItensProtheus(Collection $itens, array $bindings): Collection
 }
 
 /**
+ * Linhas cruas no formato retornado pela view VW_SOLICITE_CENTROCUSTOS do
+ * Protheus, pra filial de teste (010101) — mantém os mesmos códigos/labels
+ * da lista fixa antiga pra não precisar reescrever todos os testes.
+ *
+ * @return Collection<int, object>
+ */
+function catalogoCentrosCustoDeTeste(): Collection
+{
+    return collect([
+        ['comercial', 'Comercial'],
+        ['ti', 'TI'],
+        ['rh', 'RH'],
+        ['dp', 'DP'],
+        ['financeiro', 'Financeiro'],
+    ])->map(fn (array $c) => (object) [
+        'CTT_FILIAL' => '010101',
+        'NOME_FILIAL' => '010101-GRAN CORTE - INDUSTRIA',
+        'CTT_CUSTO' => $c[0],
+        'CTT_DESC01' => $c[1],
+        'CTT_X_CTA' => '',
+    ]);
+}
+
+/**
  * Filial de teste no formato devolvido por FilialProtheusData::toArray(),
  * usada como prop reativa do componente nos testes que dependem dela.
  *
@@ -163,6 +187,12 @@ function mockarConexaoProtheus(): void
 
     $conexao->shouldReceive('select')
         ->andReturnUsing(function (string $query, array $bindings = []) use ($itens) {
+            if (str_contains($query, 'VW_SOLICITE_CENTROCUSTOS')) {
+                $filial = $bindings[0] ?? null;
+
+                return catalogoCentrosCustoDeTeste()->where('CTT_FILIAL', $filial)->values()->all();
+            }
+
             [$offset, $perPage] = array_slice($bindings, -2);
 
             return filtrarItensProtheus($itens, $bindings)->slice($offset, $perPage)->values()->all();
@@ -247,6 +277,26 @@ test('filtra produtos por código', function () {
 
     expect($resultado)->toHaveCount(1);
     expect($resultado[0]->code)->toBe('88946');
+});
+
+test('lista os centros de custo (VW_SOLICITE_CENTROCUSTOS) da filial selecionada', function () {
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()]);
+
+    $centros = $component->instance()->centrosCustoDisponiveis();
+
+    expect($centros)->toBe([
+        'comercial' => 'Comercial',
+        'ti' => 'TI',
+        'rh' => 'RH',
+        'dp' => 'DP',
+        'financeiro' => 'Financeiro',
+    ]);
+});
+
+test('não lista centros de custo sem filial selecionada', function () {
+    $component = Livewire::test(SolicitacaoItens::class);
+
+    expect($component->instance()->centrosCustoDisponiveis())->toBe([]);
 });
 
 test('iniciar novo item abre o painel e a busca de produto quando há filial', function () {

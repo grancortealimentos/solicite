@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\DB;
 
 final class FilialProtheusRepository
 {
-    /**
-     * @return array<int, FilialProtheusData>
-     */
     public function search(?string $term): array
     {
         $hasTerm = $term !== null && $term !== '';
