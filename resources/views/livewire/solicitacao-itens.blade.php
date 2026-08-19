@@ -1,11 +1,19 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between">
         <h2 class="text-sm font-semibold text-ink">Itens da solicitação</h2>
-        <button type="button" wire:click="abrirModalBusca"
-            class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40">
-            <i class="bi bi-plus-lg"></i>
-            Adicionar item
-        </button>
+
+        <div class="flex items-center gap-3">
+            @unless ($filial)
+                <span class="text-xs text-ink-muted">Escolha a filial para liberar a inclusão de itens.</span>
+            @endunless
+
+            <button type="button" wire:click="abrirModalBusca" @disabled(! $filial)
+                title="{{ $filial ? '' : 'Selecione a filial primeiro' }}"
+                class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="bi bi-plus-lg"></i>
+                Adicionar item
+            </button>
+        </div>
     </div>
 
     <div class="bg-surface border border-border rounded-xl overflow-hidden">
@@ -15,6 +23,7 @@
                     <tr>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Código</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Descrição</th>
+                        <th class="px-4 py-3 text-start font-medium text-ink-muted">Estoque na filial</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Unidade</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Armazém</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Cta contábil</th>
@@ -31,6 +40,21 @@
                         <tr wire:key="item-{{ $item['codigo'] }}">
                             <td class="px-4 py-3 text-ink">{{ $item['codigo'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['descricao'] }}</td>
+                            <td class="px-4 py-3">
+                                @if (($item['estoque_filial'] ?? 0) > 0)
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        Em estoque ({{ $item['estoque_filial'] }})
+                                    </span>
+                                @else
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        Sem estoque
+                                    </span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3 text-ink">{{ $item['unidade_medida'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['armazem'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['cta_contabil'] }}</td>
@@ -50,7 +74,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="px-4 py-6 text-center text-ink-muted">
+                            <td colspan="12" class="px-4 py-6 text-center text-ink-muted">
                                 Nenhum item adicionado.
                             </td>
                         </tr>
@@ -141,6 +165,23 @@
                         <span class="font-medium text-ink">{{ $produtoSelecionado['code'] }}</span> —
                         {{ $produtoSelecionado['description'] }}
                     </p>
+                    <div class="mt-2">
+                        @if ($estoqueProdutoSelecionado === null)
+                            <span class="text-xs text-ink-muted">Selecione a filial</span>
+                        @elseif ($estoqueProdutoSelecionado > 0)
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
+                                <i class="bi bi-check-circle-fill"></i>
+                                Em estoque ({{ $estoqueProdutoSelecionado }})
+                            </span>
+                        @else
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger">
+                                <i class="bi bi-x-circle-fill"></i>
+                                Sem estoque
+                            </span>
+                        @endif
+                    </div>
                 </div>
 
                 <!-- Formulário -->
@@ -225,6 +266,39 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    {{-- Aviso: produto com saldo na filial --}}
+    @if ($avisoEstoqueAberto && $itemPendente)
+        <div class="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/60" wire:click="cancelarAvisoEstoque"></div>
+
+            <div class="relative bg-surface border border-border rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div class="px-6 py-5 border-b border-border">
+                    <h3 class="text-base font-semibold text-ink">Confira antes de continuar</h3>
+                </div>
+
+                <div class="px-6 py-5">
+                    <p class="text-sm text-ink">
+                        O produto <span class="font-semibold">{{ $itemPendente['descricao'] }}</span> tem
+                        {{ $itemPendente['estoque_filial'] }} unidade{{ $itemPendente['estoque_filial'] > 1 ? 's' : '' }}
+                        no estoque da filial. Tem certeza que deseja pedir?
+                    </p>
+                </div>
+
+                <div class="px-6 py-4 border-t border-border flex items-center justify-end gap-3 bg-surface">
+                    <button type="button" wire:click="cancelarAvisoEstoque"
+                        class="py-2.5 px-4 text-sm font-medium rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors">
+                        Não, voltar
+                    </button>
+                    <button type="button" wire:click="confirmarComEstoque" wire:loading.attr="disabled"
+                        wire:target="confirmarComEstoque"
+                        class="py-2.5 px-4 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:opacity-70 disabled:cursor-not-allowed transition-colors">
+                        Sim, continuar
+                    </button>
+                </div>
             </div>
         </div>
     @endif

@@ -4,9 +4,31 @@ namespace App\Repositories;
 
 use App\Models\Solicitacao;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class SolicitacaoRepository
 {
+    /**
+     * @param  array<int, array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string}>  $itens
+     */
+    public function criar(int $userId, string $filial, array $itens): Solicitacao
+    {
+        return DB::transaction(function () use ($userId, $filial, $itens) {
+            $solicitacao = Solicitacao::create([
+                'user_id' => $userId,
+                'filial' => $filial,
+                'status' => Solicitacao::STATUS_PENDENTE,
+            ]);
+
+            $solicitacao->itens()->createMany(
+                array_map(fn (array $item): array => Arr::except($item, 'estoque_filial'), $itens)
+            );
+
+            return $solicitacao;
+        });
+    }
+
     public function paginar(array $filtros = [], int $porPagina = 10): LengthAwarePaginator
     {
         $busca = $filtros['search'] ?? null;

@@ -3,17 +3,28 @@
 namespace App\Livewire;
 
 use App\DTOs\Protheus\ItemProtheusData;
+use App\Services\Protheus\EstoqueProtheusService;
 use App\Services\Protheus\ItemProtheusService;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 class SolicitacaoItens extends Component
 {
     /**
-     * @var array<int, array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string}>
+     * @var array<int, array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}>
      */
     public array $itens = [];
+
+    /**
+     * Filial selecionada na tela de "Nova solicitação" (componente pai), usada
+     * pra consultar o saldo em estoque do produto antes de confirmar o item.
+     *
+     * @var array{code: string, name: string, document: string, city: string, address: string, district: string, state: string, email: string, phone: string}|null
+     */
+    #[Reactive]
+    public ?array $filial = null;
 
     public bool $buscaModalAberta = false;
 
@@ -42,14 +53,33 @@ class SolicitacaoItens extends Component
     public string $centroCusto = '';
 
     /**
-     * Service injetado via boot(), não fica exposto como propriedade pública
-     * (não precisa ser serializado entre requisições do Livewire).
+     * Saldo em estoque (SB2010) do produto selecionado na filial atual.
+     * Null quando ainda não há filial escolhida ou a consulta não rodou.
+     */
+    public ?float $estoqueProdutoSelecionado = null;
+
+    public bool $avisoEstoqueAberto = false;
+
+    /**
+     * Item já validado, aguardando confirmação do usuário no aviso de
+     * estoque antes de entrar de fato em $itens.
+     *
+     * @var array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}|null
+     */
+    public ?array $itemPendente = null;
+
+    /**
+     * Services injetados via boot(), não ficam expostos como propriedade
+     * pública (não precisam ser serializados entre requisições do Livewire).
      */
     private ItemProtheusService $service;
 
-    public function boot(ItemProtheusService $service): void
+    private EstoqueProtheusService $estoqueService;
+
+    public function boot(ItemProtheusService $service, EstoqueProtheusService $estoqueService): void
     {
         $this->service = $service;
+        $this->estoqueService = $estoqueService;
     }
 
     /**
@@ -115,6 +145,12 @@ class SolicitacaoItens extends Component
 
     public function abrirModalBusca(): void
     {
+        if (! $this->filial) {
+            $this->dispatch('toast', tipo: 'error', mensagem: 'Selecione a filial antes de adicionar itens.');
+
+            return;
+        }
+
         $this->termoBusca = '';
         $this->pagina = 1;
         $this->buscaModalAberta = true;
@@ -150,6 +186,10 @@ class SolicitacaoItens extends Component
         $this->centroCusto = '';
         $this->resetValidation();
 
+        $this->estoqueProdutoSelecionado = $this->filial
+            ? $this->estoqueService->saldo($this->filial['code'], $codigo)
+            : null;
+
         $this->buscaModalAberta = false;
         $this->detalheModalAberta = true;
     }
@@ -158,6 +198,7 @@ class SolicitacaoItens extends Component
     {
         $this->detalheModalAberta = false;
         $this->produtoSelecionado = null;
+        $this->estoqueProdutoSelecionado = null;
     }
 
     public function confirmarItem(): void
@@ -169,7 +210,7 @@ class SolicitacaoItens extends Component
             'centroCusto' => ['required', Rule::in(array_keys($this->centrosCusto()))],
         ]);
 
-        $this->itens[] = [
+        $item = [
             'codigo' => $this->produtoSelecionado['code'],
             'descricao' => $this->produtoSelecionado['description'],
             'unidade_medida' => $this->produtoSelecionado['unitMeasurement'],
@@ -180,10 +221,51 @@ class SolicitacaoItens extends Component
             'data_prazo' => $dados['dataPrazo'],
             'observacao' => $dados['observacao'],
             'centro_custo' => $this->centrosCusto()[$dados['centroCusto']],
+            'estoque_filial' => $this->estoqueProdutoSelecionado ?? 0,
         ];
+
+        if ($this->filial && $this->estoqueProdutoSelecionado > 0) {
+            $this->itemPendente = $item;
+            $this->avisoEstoqueAberto = true;
+
+            return;
+        }
+
+        $this->adicionarItem($item);
+    }
+
+    /**
+     * Usuário confirmou que quer pedir mesmo o produto tendo saldo na filial.
+     */
+    public function confirmarComEstoque(): void
+    {
+        if (! $this->itemPendente) {
+            return;
+        }
+
+        $this->adicionarItem($this->itemPendente);
+    }
+
+    public function cancelarAvisoEstoque(): void
+    {
+        $this->avisoEstoqueAberto = false;
+        $this->itemPendente = null;
+    }
+
+    /**
+     * @param  array{codigo: string, descricao: string, unidade_medida: string, armazem: string, cta_contabil: string, grupo_produto: string, quantidade: string, data_prazo: string, observacao: string, centro_custo: string, estoque_filial: float}  $item
+     */
+    private function adicionarItem(array $item): void
+    {
+        $this->itens[] = $item;
 
         $this->detalheModalAberta = false;
         $this->produtoSelecionado = null;
+        $this->estoqueProdutoSelecionado = null;
+        $this->avisoEstoqueAberto = false;
+        $this->itemPendente = null;
+
+        $this->dispatch('itens-atualizados', itens: $this->itens);
     }
 
     public function removerItem(string $codigo): void
@@ -191,6 +273,8 @@ class SolicitacaoItens extends Component
         $this->itens = array_values(
             array_filter($this->itens, fn (array $item): bool => $item['codigo'] !== $codigo)
         );
+
+        $this->dispatch('itens-atualizados', itens: $this->itens);
     }
 
     public function render()

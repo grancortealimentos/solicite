@@ -86,17 +86,72 @@ function filtrarItensProtheus(Collection $itens, array $bindings): Collection
 }
 
 /**
+ * Filial de teste no formato devolvido por FilialProtheusData::toArray(),
+ * usada como prop reativa do componente nos testes que dependem dela.
+ *
+ * @return array{code: string, name: string, document: string, city: string, address: string, district: string, state: string, email: string, phone: string}
+ */
+function filialDeTeste(): array
+{
+    return [
+        'code' => '010101',
+        'name' => '010101-GRAN CORTE - INDUSTRIA',
+        'document' => '17098519000157',
+        'city' => 'CERQUEIRA CESAR',
+        'address' => 'RODOVIA SALIM CURIATI, S/N',
+        'district' => 'MACUQUINHO',
+        'state' => 'SP',
+        'email' => '',
+        'phone' => '55-14-37142911',
+    ];
+}
+
+/**
+ * Estoque de teste lido pelo dublê da conexão 'protheus' a cada chamada.
+ * mockarConexaoProtheus() só registra o dublê uma vez, no beforeEach; os
+ * testes que precisam de um saldo específico usam definirEstoqueDeTeste()
+ * pra sobrescrever o que o dublê já registrado vai ler na hora da consulta
+ * (reatribuir o mock no meio do teste não funciona: o Mockery mantém a
+ * primeira expectativa sem limite de chamadas como a válida).
+ *
+ * @return array<string, array<string, float>>
+ */
+function &estoqueDeTesteStore(): array
+{
+    static $estoque = [];
+
+    return $estoque;
+}
+
+/**
+ * @param  array<string, array<string, float>>  $estoque  [codigo_filial => [codigo_produto => saldo]]
+ */
+function definirEstoqueDeTeste(array $estoque): void
+{
+    $store = &estoqueDeTesteStore();
+    $store = $estoque;
+}
+
+/**
  * Substitui a conexão 'protheus' real por um dublê que responde às mesmas
- * queries do ItemProtheusRepository sobre o catálogo de teste em memória.
+ * queries do ItemProtheusRepository e do EstoqueProtheusRepository sobre o
+ * catálogo/estoque de teste em memória.
  */
 function mockarConexaoProtheus(): void
 {
     $itens = catalogoProtheusDeTeste();
+    definirEstoqueDeTeste([]);
 
     $conexao = Mockery::mock(ConnectionInterface::class);
 
     $conexao->shouldReceive('selectOne')
         ->andReturnUsing(function (string $query, array $bindings = []) use ($itens) {
+            if (str_contains($query, 'SB2010')) {
+                [, $codigo, $filial] = $bindings;
+
+                return (object) ['saldo' => estoqueDeTesteStore()[$filial][$codigo] ?? 0];
+            }
+
             if (str_contains($query, 'COUNT(*)')) {
                 return (object) ['total' => filtrarItensProtheus($itens, $bindings)->count()];
             }
@@ -125,12 +180,19 @@ test('inicia sem itens e com os modais fechados', function () {
         ->assertSet('detalheModalAberta', false);
 });
 
-test('abre e fecha o modal de busca', function () {
-    Livewire::test(SolicitacaoItens::class)
+test('abre e fecha o modal de busca quando há filial selecionada', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
         ->call('abrirModalBusca')
         ->assertSet('buscaModalAberta', true)
         ->call('fecharModalBusca')
         ->assertSet('buscaModalAberta', false);
+});
+
+test('não abre o modal de busca sem filial selecionada', function () {
+    Livewire::test(SolicitacaoItens::class)
+        ->call('abrirModalBusca')
+        ->assertSet('buscaModalAberta', false)
+        ->assertDispatched('toast', tipo: 'error', mensagem: 'Selecione a filial antes de adicionar itens.');
 });
 
 test('lista todo o catálogo quando o termo de busca está vazio', function () {
@@ -219,7 +281,7 @@ test('confirma o item preenchido e ele volta pra tela principal', function () {
 });
 
 test('não adiciona o mesmo produto duas vezes', function () {
-    $component = Livewire::test(SolicitacaoItens::class)
+    $component = Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
         ->call('selecionarProduto', '88946')
         ->set('quantidade', 1)
         ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
@@ -243,4 +305,66 @@ test('remove um item pelo código', function () {
         ->call('confirmarItem')
         ->call('removerItem', '88946')
         ->assertCount('itens', 0);
+});
+
+test('consulta o saldo em estoque (SB2010) do produto ao selecioná-lo, quando há filial', function () {
+    definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('selecionarProduto', '88946')
+        ->assertSet('estoqueProdutoSelecionado', 3.0);
+});
+
+test('não consulta o saldo em estoque sem filial selecionada', function () {
+    Livewire::test(SolicitacaoItens::class)
+        ->call('selecionarProduto', '88946')
+        ->assertSet('estoqueProdutoSelecionado', null);
+});
+
+test('pede confirmação antes de adicionar um produto com saldo na filial', function () {
+    definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('selecionarProduto', '88946')
+        ->set('quantidade', 2)
+        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
+        ->set('centroCusto', 'ti')
+        ->set('observacao', 'Reposição de material.')
+        ->call('confirmarItem')
+        ->assertSet('avisoEstoqueAberto', true)
+        ->assertCount('itens', 0)
+        ->call('confirmarComEstoque')
+        ->assertSet('avisoEstoqueAberto', false)
+        ->assertCount('itens', 1)
+        ->assertSet('itens.0.estoque_filial', 3.0);
+});
+
+test('cancelar o aviso de estoque não adiciona o item', function () {
+    definirEstoqueDeTeste(['010101' => ['88946' => 3]]);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('selecionarProduto', '88946')
+        ->set('quantidade', 2)
+        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
+        ->set('centroCusto', 'ti')
+        ->set('observacao', 'Reposição de material.')
+        ->call('confirmarItem')
+        ->call('cancelarAvisoEstoque')
+        ->assertSet('avisoEstoqueAberto', false)
+        ->assertCount('itens', 0);
+});
+
+test('adiciona direto quando o produto não tem saldo na filial', function () {
+    definirEstoqueDeTeste(['010101' => ['88946' => 0]]);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('selecionarProduto', '88946')
+        ->set('quantidade', 2)
+        ->set('dataPrazo', now()->addDays(5)->format('Y-m-d'))
+        ->set('centroCusto', 'ti')
+        ->set('observacao', 'Sem estoque disponível.')
+        ->call('confirmarItem')
+        ->assertSet('avisoEstoqueAberto', false)
+        ->assertCount('itens', 1)
+        ->assertSet('itens.0.estoque_filial', 0.0);
 });
