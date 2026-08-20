@@ -60,43 +60,59 @@
                 </button>
             </div>
 
-            @if ($produtoSelecionado)
-                <div class="mt-4 rounded-xl border border-border bg-canvas p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted mb-3">Última compra</p>
+            @if ($produtoSelecionado && ($estoqueProdutoSelecionado ?? 0) > 0)
+                <div
+                    class="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 shadow-[0_0_20px_rgba(245,158,11,0.12)]">
+                    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-300">Última compra</p>
 
                     @if ($ultimaCompraProduto)
                         <div class="grid gap-3 sm:grid-cols-3">
-                            <div>
-                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
+                            <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                                <p
+                                    class="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-300">
                                     <i class="bi bi-truck"></i>
                                     Fornecedor
                                 </p>
-                                <p class="mt-1 text-sm font-semibold text-ink truncate"
-                                    title="{{ $ultimaCompraProduto['fornecedor'] }}">
-                                    {{ $ultimaCompraProduto['fornecedor'] ?: 'Não informado' }}
-                                </p>
+                                @if ($ultimaCompraProduto['fornecedor'])
+                                    <p class="mt-1 truncate text-sm font-semibold text-amber-100"
+                                        title="{{ $ultimaCompraProduto['fornecedor'] }}">
+                                        {{ $ultimaCompraProduto['fornecedor'] }}
+                                    </p>
+                                @else
+                                    <p class="mt-1 truncate text-sm font-medium text-amber-200/60">Não disponível</p>
+                                @endif
                             </div>
-                            <div>
-                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
-                                    <i class="bi bi-cash-coin"></i>
-                                    Valor unitário
+
+                            <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                                <p
+                                    class="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-300">
+                                    <i class="bi bi-receipt"></i>
+                                    Último valor pago
                                 </p>
-                                <p class="mt-1 text-sm font-semibold text-primary">
+                                <p class="mt-1 truncate text-sm font-bold text-amber-300">
                                     R$ {{ number_format($ultimaCompraProduto['valorUnitario'], 2, ',', '.') }}
                                 </p>
                             </div>
-                            <div>
-                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
+
+                            <div class="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+                                <p
+                                    class="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-300">
                                     <i class="bi bi-calendar-event"></i>
-                                    Data da compra
+                                    Data da última compra
                                 </p>
-                                <p class="mt-1 text-sm font-semibold text-ink">
-                                    {{ $ultimaCompraProduto['dataCompra'] ? \Illuminate\Support\Carbon::parse($ultimaCompraProduto['dataCompra'])->format('d/m/Y') : 'Não informado' }}
-                                </p>
+                                @if ($ultimaCompraProduto['dataCompra'])
+                                    <p class="mt-1 truncate text-sm font-semibold text-amber-100">
+                                        {{ \Illuminate\Support\Carbon::parse($ultimaCompraProduto['dataCompra'])->format('d/m/Y') }}
+                                    </p>
+                                @else
+                                    <p class="mt-1 truncate text-sm font-medium text-amber-200/60">Não disponível</p>
+                                @endif
                             </div>
                         </div>
                     @else
-                        <p class="text-sm text-ink-muted">Nenhuma compra anterior encontrada para este produto.</p>
+                        <p class="text-sm text-amber-200/80">
+                            Este produto ainda não tem histórico de compras registrado.
+                        </p>
                     @endif
                 </div>
             @endif
