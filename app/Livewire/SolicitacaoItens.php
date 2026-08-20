@@ -6,6 +6,7 @@ use App\DTOs\Protheus\ItemProtheusData;
 use App\Services\Protheus\CentroCustoProtheusService;
 use App\Services\Protheus\EstoqueProtheusService;
 use App\Services\Protheus\ItemProtheusService;
+use App\Services\Protheus\UltimaCompraProtheusService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -81,6 +82,15 @@ class SolicitacaoItens extends Component
     public ?float $estoqueProdutoSelecionado = null;
 
     /**
+     * Última compra (SF1010/SD1010/SA2010) do produto selecionado, pra ajudar
+     * o solicitante a conferir fornecedor e preço de referência. Null quando
+     * não há produto selecionado ou não existe histórico de compra dele.
+     *
+     * @var array{fornecedor: string, dataCompra: string|null, valorUnitario: float}|null
+     */
+    public ?array $ultimaCompraProduto = null;
+
+    /**
      * Caminhos (disco 'public') das imagens já enviadas pro item em edição.
      *
      * @var array<int, string>
@@ -117,14 +127,18 @@ class SolicitacaoItens extends Component
 
     private CentroCustoProtheusService $centroCustoService;
 
+    private UltimaCompraProtheusService $ultimaCompraService;
+
     public function boot(
         ItemProtheusService $service,
         EstoqueProtheusService $estoqueService,
         CentroCustoProtheusService $centroCustoService,
+        UltimaCompraProtheusService $ultimaCompraService,
     ): void {
         $this->service = $service;
         $this->estoqueService = $estoqueService;
         $this->centroCustoService = $centroCustoService;
+        $this->ultimaCompraService = $ultimaCompraService;
     }
 
     /**
@@ -228,6 +242,7 @@ class SolicitacaoItens extends Component
         $this->centroCusto = array_search($dados['centro_custo'], $this->centrosCustoDisponiveis(), true) ?: '';
         $this->imagens = $dados['imagens'] ?? [];
         $this->estoqueProdutoSelecionado = $dados['estoque_filial'] ?? null;
+        $this->ultimaCompraProduto = $this->ultimaCompraService->porProduto($dados['codigo'])?->toArray();
         $this->resetValidation();
 
         $this->itemEmEdicao = $item;
@@ -251,6 +266,7 @@ class SolicitacaoItens extends Component
         $this->centroCusto = '';
         $this->imagens = [];
         $this->estoqueProdutoSelecionado = null;
+        $this->ultimaCompraProduto = null;
         $this->resetValidation();
     }
 
@@ -288,6 +304,8 @@ class SolicitacaoItens extends Component
         $this->estoqueProdutoSelecionado = $this->filial
             ? $this->estoqueService->saldo($this->filial['code'], $codigo)
             : null;
+
+        $this->ultimaCompraProduto = $this->ultimaCompraService->porProduto($codigo)?->toArray();
 
         $this->buscaModalAberta = false;
     }

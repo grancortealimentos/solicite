@@ -60,6 +60,47 @@
                 </button>
             </div>
 
+            @if ($produtoSelecionado)
+                <div class="mt-4 rounded-xl border border-border bg-canvas p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-ink-muted mb-3">Última compra</p>
+
+                    @if ($ultimaCompraProduto)
+                        <div class="grid gap-3 sm:grid-cols-3">
+                            <div>
+                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
+                                    <i class="bi bi-truck"></i>
+                                    Fornecedor
+                                </p>
+                                <p class="mt-1 text-sm font-semibold text-ink truncate"
+                                    title="{{ $ultimaCompraProduto['fornecedor'] }}">
+                                    {{ $ultimaCompraProduto['fornecedor'] ?: 'Não informado' }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
+                                    <i class="bi bi-cash-coin"></i>
+                                    Valor unitário
+                                </p>
+                                <p class="mt-1 text-sm font-semibold text-primary">
+                                    R$ {{ number_format($ultimaCompraProduto['valorUnitario'], 2, ',', '.') }}
+                                </p>
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-medium text-ink-muted flex items-center gap-1">
+                                    <i class="bi bi-calendar-event"></i>
+                                    Data da compra
+                                </p>
+                                <p class="mt-1 text-sm font-semibold text-ink">
+                                    {{ $ultimaCompraProduto['dataCompra'] ? \Illuminate\Support\Carbon::parse($ultimaCompraProduto['dataCompra'])->format('d/m/Y') : 'Não informado' }}
+                                </p>
+                            </div>
+                        </div>
+                    @else
+                        <p class="text-sm text-ink-muted">Nenhuma compra anterior encontrada para este produto.</p>
+                    @endif
+                </div>
+            @endif
+
             <form wire:submit="confirmarItem">
                 <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>

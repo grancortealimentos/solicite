@@ -159,6 +159,28 @@ function definirEstoqueDeTeste(array $estoque): void
 }
 
 /**
+ * Última compra de teste lida pelo dublê da conexão 'protheus' a cada
+ * chamada, mesma lógica de definirEstoqueDeTeste() acima.
+ *
+ * @return array<string, array{FORNECEDOR: string, DATA_COMPRA: string, VALOR_UNITARIO: float}>
+ */
+function &ultimaCompraDeTesteStore(): array
+{
+    static $dados = [];
+
+    return $dados;
+}
+
+/**
+ * @param  array<string, array{FORNECEDOR: string, DATA_COMPRA: string, VALOR_UNITARIO: float}>  $porCodigo
+ */
+function definirUltimaCompraDeTeste(array $porCodigo): void
+{
+    $store = &ultimaCompraDeTesteStore();
+    $store = $porCodigo;
+}
+
+/**
  * Substitui a conexão 'protheus' real por um dublê que responde às mesmas
  * queries do ItemProtheusRepository e do EstoqueProtheusRepository sobre o
  * catálogo/estoque de teste em memória.
@@ -167,6 +189,7 @@ function mockarConexaoProtheus(): void
 {
     $itens = catalogoProtheusDeTeste();
     definirEstoqueDeTeste([]);
+    definirUltimaCompraDeTeste([]);
 
     $conexao = Mockery::mock(ConnectionInterface::class);
 
@@ -176,6 +199,13 @@ function mockarConexaoProtheus(): void
                 [, $codigo, $filial] = $bindings;
 
                 return (object) ['saldo' => estoqueDeTesteStore()[$filial][$codigo] ?? 0];
+            }
+
+            if (str_contains($query, 'SF1010')) {
+                $codigo = $bindings[0] ?? null;
+                $dados = ultimaCompraDeTesteStore()[$codigo] ?? null;
+
+                return $dados ? (object) $dados : null;
             }
 
             if (str_contains($query, 'COUNT(*)')) {
@@ -450,6 +480,28 @@ test('remove um item pelo número e renumera os restantes', function () {
         ->assertCount('itens', 1)
         ->assertSet('itens.0.codigo', '90211')
         ->assertSet('itens.0.item', 1);
+});
+
+test('consulta a última compra (SF1010) do produto ao selecioná-lo', function () {
+    definirUltimaCompraDeTeste([
+        '88946' => ['FORNECEDOR' => '000001 - FORNECEDOR TESTE', 'DATA_COMPRA' => '2026-06-15', 'VALOR_UNITARIO' => 1234.5],
+    ]);
+
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->assertSet('ultimaCompraProduto', [
+            'fornecedor' => '000001 - FORNECEDOR TESTE',
+            'dataCompra' => '2026-06-15',
+            'valorUnitario' => 1234.5,
+        ]);
+});
+
+test('não encontra última compra quando o produto não tem histórico', function () {
+    Livewire::test(SolicitacaoItens::class, ['filial' => filialDeTeste()])
+        ->call('iniciarNovoItem')
+        ->call('selecionarProduto', '88946')
+        ->assertSet('ultimaCompraProduto', null);
 });
 
 test('consulta o saldo em estoque (SB2010) do produto ao selecioná-lo, quando há filial', function () {
