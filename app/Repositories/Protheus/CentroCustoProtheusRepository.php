@@ -12,7 +12,10 @@ final class CentroCustoProtheusRepository
     public function porFilial(string $filial): array
     {
         $rows = DB::connection('protheus')->select(
-            'SELECT * FROM VW_SOLICITE_CENTROCUSTOS WHERE RTRIM(CTT_FILIAL) = ? ORDER BY CTT_DESC01',
+            'SELECT * FROM VW_SOLICITE_CENTROCUSTOS
+            WHERE RTRIM(CTT_FILIAL) = ?
+            AND LEN(CTT_CUSTO) = 7
+            ORDER BY CTT_DESC01',
             [$filial]
         );
 
