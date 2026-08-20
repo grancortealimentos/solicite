@@ -84,17 +84,54 @@
                         @enderror
                     </div>
 
-                    <div class="sm:col-span-2 lg:col-span-2">
+                    <div class="sm:col-span-2 lg:col-span-2" wire:key="centro-custo-{{ $filial['code'] ?? 'sem-filial' }}"
+                        x-data="{
+                            aberto: false,
+                            busca: '',
+                            opcoes: @js($this->centrosCustoDisponiveis),
+                            get filtradas() {
+                                const termo = this.busca.toLowerCase();
+                                return Object.entries(this.opcoes).filter(([codigo, rotulo]) => rotulo.toLowerCase().includes(termo));
+                            },
+                            get rotuloSelecionado() {
+                                return this.opcoes[$wire.centroCusto] ?? '';
+                            },
+                        }"
+                        x-on:click.outside="aberto = false">
                         <label for="centroCusto" class="block text-xs font-semibold text-ink mb-2">
                             Centro de custo <span class="text-danger">*</span>
                         </label>
-                        <select id="centroCusto" wire:model="centroCusto"
-                            class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('centroCusto') border-danger @enderror">
-                            <option value="">Selecione</option>
-                            @foreach ($this->centrosCustoDisponiveis as $valor => $label)
-                                <option value="{{ $valor }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
+
+                        <div class="relative">
+                            <button type="button" id="centroCusto" x-on:click="aberto = ! aberto; busca = ''"
+                                class="py-2.5 px-3.5 flex items-center justify-between w-full bg-canvas border border-border rounded-lg text-sm text-start focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('centroCusto') border-danger @enderror">
+                                <span :class="rotuloSelecionado ? 'text-ink' : 'text-ink-muted'"
+                                    x-text="rotuloSelecionado || 'Selecione'"></span>
+                                <i class="bi bi-chevron-down text-ink-muted"></i>
+                            </button>
+
+                            <div x-show="aberto" x-cloak
+                                class="absolute z-10 mt-1 w-full bg-surface border border-border rounded-lg shadow-lg overflow-hidden">
+                                <div class="p-2 border-b border-border">
+                                    <input type="text" x-model="busca" x-ref="buscaCentroCusto"
+                                        x-init="$watch('aberto', (valor) => valor && $nextTick(() => $refs.buscaCentroCusto.focus()))"
+                                        placeholder="Buscar centro de custo..."
+                                        class="py-2 px-3 block w-full bg-canvas border border-border rounded-md text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary">
+                                </div>
+                                <div class="max-h-56 overflow-y-auto">
+                                    <template x-for="[codigo, rotulo] in filtradas" :key="codigo">
+                                        <button type="button"
+                                            x-on:click="$wire.centroCusto = codigo; aberto = false"
+                                            class="w-full px-3 py-2 text-start text-sm text-ink hover:bg-surface-hover"
+                                            :class="$wire.centroCusto === codigo && 'bg-primary/10'"
+                                            x-text="rotulo"></button>
+                                    </template>
+                                    <p x-show="filtradas.length === 0" class="px-3 py-4 text-sm text-ink-muted text-center">
+                                        Nenhum centro de custo encontrado.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                         @error('centroCusto')
                             <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
                         @enderror
