@@ -113,6 +113,23 @@ test('inicia sem filial selecionada e com a busca fechada', function () {
         ->assertSet('filialBuscaAberta', false);
 });
 
+test('inicia com a data de uso preenchida com hoje quando o usuário não tem prazo configurado', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->assertSet('dataUso', today()->format('Y-m-d'));
+});
+
+test('inicia com a data de uso preenchida com hoje + prazo configurado pro usuário', function () {
+    $user = User::factory()->create();
+    UserSetting::create(['user_id' => $user->id, 'delivery_lead_days' => 5]);
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->assertSet('dataUso', today()->addDays(5)->format('Y-m-d'));
+});
+
 test('abre e fecha a busca de filial', function () {
     $user = User::factory()->create();
 
@@ -196,6 +213,7 @@ test('não salva sem data de uso informada', function () {
     Livewire::actingAs($user)
         ->test(Create::class)
         ->call('selecionarFilial', '010101')
+        ->set('dataUso', '')
         ->call('salvar')
         ->assertDispatched('toast', tipo: 'error', mensagem: 'Informe a data de uso antes de salvar.');
 
@@ -262,6 +280,20 @@ test('abrirConfirmacao lista os problemas quando falta filial ou item', function
         ->assertSet('confirmacaoAberta', false)
         ->assertSet('problemas', [
             'Escolha a filial da solicitação.',
+            'Adicione pelo menos um item antes de salvar.',
+        ]);
+});
+
+test('abrirConfirmacao lista o problema quando a data de uso é apagada', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->set('dataUso', '')
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', false)
+        ->assertSet('problemas', [
             'Informe a data de uso da solicitação.',
             'Adicione pelo menos um item antes de salvar.',
         ]);

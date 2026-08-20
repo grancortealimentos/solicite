@@ -56,6 +56,11 @@ class Create extends Component
         $this->filialProtheusService = $filialProtheusService;
     }
 
+    public function mount(): void
+    {
+        $this->dataUso = $this->dataUsoMinima()->format('Y-m-d');
+    }
+
     /**
      * @return array<int, FilialProtheusData>
      */
