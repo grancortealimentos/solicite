@@ -114,7 +114,7 @@ class Create extends Component
         if (! $this->dataUso) {
             $this->problemas[] = 'Informe a data de uso da solicitação.';
         } elseif (! $this->dataUsoValida()) {
-            $this->problemas[] = 'A data de uso deve estar entre hoje e '.self::MAX_ANOS_PREVISAO.' anos à frente.';
+            $this->problemas[] = 'A data de uso deve ser a partir de '.$this->dataUsoMinima()->format('d/m/Y').'.';
         }
 
         if (empty($this->itens)) {
@@ -133,6 +133,17 @@ class Create extends Component
         $this->confirmacaoAberta = false;
     }
 
+    /**
+     * Data mínima permitida pra "data de uso": hoje (data da solicitação) +
+     * prazo de entrega configurado pro usuário logado (0 quando não configurado).
+     */
+    public function dataUsoMinima(): Carbon
+    {
+        $leadDays = auth()->user()->setting?->delivery_lead_days ?? 0;
+
+        return today()->addDays($leadDays);
+    }
+
     private function dataUsoValida(): bool
     {
         try {
@@ -141,7 +152,7 @@ class Create extends Component
             return false;
         }
 
-        return $data->greaterThanOrEqualTo(today()) && $data->lessThanOrEqualTo(now()->addYears(self::MAX_ANOS_PREVISAO));
+        return $data->greaterThanOrEqualTo($this->dataUsoMinima()) && $data->lessThanOrEqualTo(now()->addYears(self::MAX_ANOS_PREVISAO));
     }
 
     public function salvar(SolicitacaoService $solicitacaoService): void

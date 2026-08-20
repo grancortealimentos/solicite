@@ -3,6 +3,7 @@
 use App\Livewire\Solicitacao\Create;
 use App\Models\Solicitacao;
 use App\Models\User;
+use App\Models\UserSetting;
 use Database\Seeders\PermissaoSeeder;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -275,7 +276,10 @@ test('abrirConfirmacao rejeita data de uso no passado', function () {
         ->set('dataUso', now()->subDay()->format('Y-m-d'))
         ->call('abrirConfirmacao')
         ->assertSet('confirmacaoAberta', false)
-        ->assertSet('problemas', ['A data de uso deve estar entre hoje e 2 anos à frente.', 'Adicione pelo menos um item antes de salvar.']);
+        ->assertSet('problemas', [
+            'A data de uso deve ser a partir de '.today()->format('d/m/Y').'.',
+            'Adicione pelo menos um item antes de salvar.',
+        ]);
 });
 
 test('abrirConfirmacao rejeita data de uso mais de 2 anos à frente', function () {
@@ -287,7 +291,56 @@ test('abrirConfirmacao rejeita data de uso mais de 2 anos à frente', function (
         ->set('dataUso', now()->addYears(2)->addDay()->format('Y-m-d'))
         ->call('abrirConfirmacao')
         ->assertSet('confirmacaoAberta', false)
-        ->assertSet('problemas', ['A data de uso deve estar entre hoje e 2 anos à frente.', 'Adicione pelo menos um item antes de salvar.']);
+        ->assertSet('problemas', [
+            'A data de uso deve ser a partir de '.today()->format('d/m/Y').'.',
+            'Adicione pelo menos um item antes de salvar.',
+        ]);
+});
+
+test('abrirConfirmacao rejeita data de uso anterior ao prazo de entrega configurado pro usuário', function () {
+    $user = User::factory()->create();
+    UserSetting::create(['user_id' => $user->id, 'delivery_lead_days' => 5]);
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addDays(2)->format('Y-m-d'))
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', false)
+        ->assertSet('problemas', [
+            'A data de uso deve ser a partir de '.today()->addDays(5)->format('d/m/Y').'.',
+            'Adicione pelo menos um item antes de salvar.',
+        ]);
+});
+
+test('abrirConfirmacao aceita data de uso igual ao prazo de entrega configurado pro usuário', function () {
+    $user = User::factory()->create();
+    UserSetting::create(['user_id' => $user->id, 'delivery_lead_days' => 5]);
+
+    $item = [
+        'item' => 1,
+        'codigo' => '88946',
+        'descricao' => 'MINI PC',
+        'unidade_medida' => 'UN',
+        'armazem' => '50',
+        'cta_contabil' => '123456789',
+        'grupo_produto' => 'INFORMATICA',
+        'quantidade' => 2,
+        'data_prazo' => today()->addDays(5)->format('Y-m-d'),
+        'observacao' => 'Uso interno.',
+        'centro_custo' => 'TI',
+        'estoque_filial' => 0.0,
+        'imagens' => [],
+    ];
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->set('dataUso', today()->addDays(5)->format('Y-m-d'))
+        ->call('sincronizarItens', [$item])
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', true)
+        ->assertSet('problemas', []);
 });
 
 test('abrirConfirmacao abre a revisão quando filial e itens estão completos', function () {

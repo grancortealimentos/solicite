@@ -31,8 +31,11 @@
                 <label for="dataUso" class="block text-sm font-medium text-ink-muted mb-2">
                     Data de uso <span class="text-danger">*</span>
                 </label>
-                <input id="dataUso" type="date" wire:model="dataUso"
+                <input id="dataUso" type="date" wire:model="dataUso" min="{{ $this->dataUsoMinima()->format('Y-m-d') }}"
                     class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink focus:ring-primary/20 focus:border-primary">
+                <p class="mt-2 text-xs text-ink-muted">
+                    A partir de {{ $this->dataUsoMinima()->format('d/m/Y') }}.
+                </p>
             </div>
         </div>
 
