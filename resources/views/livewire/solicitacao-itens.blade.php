@@ -126,7 +126,7 @@
 
                     <div>
                         <label for="dataPrazo" class="block text-xs font-semibold text-ink mb-2">
-                            Data prazo <span class="text-danger">*</span>
+                            Data de Uso <span class="text-danger">*</span>
                         </label>
                         <input id="dataPrazo" type="date" wire:model="dataPrazo"
                             class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('dataPrazo') border-danger @enderror">
