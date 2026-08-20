@@ -204,6 +204,11 @@
                                         {{ __('Emitida em') }}
                                     </span>
                                 </th>
+                                <th scope="col" class="px-6 py-3 text-start">
+                                    <span class="text-xs font-semibold uppercase text-ink-muted">
+                                        {{ __('Previsão de entrega') }}
+                                    </span>
+                                </th>
                                 <th scope="col" class="px-6 py-3 text-end">
                                     <span
                                         class="text-xs font-semibold uppercase text-ink-muted">{{ __('Ações') }}</span>
@@ -295,6 +300,12 @@
                                     </td>
 
                                     <td class="size-px whitespace-nowrap">
+                                        <div class="px-6 py-3">
+                                            <span class="text-sm text-ink-muted">{{ $solicitacao->previsaoEntrega()?->format('d/m/Y') ?? '—' }}</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="size-px whitespace-nowrap">
                                         <div class="px-6 py-3 flex justify-end items-center gap-x-1.5">
                                             @can('solicitacao.cancelar')
                                                 @if ($solicitacao->status === \App\Models\Solicitacao::STATUS_PENDENTE && $solicitacao->user_id === auth()->id())
@@ -317,7 +328,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-6 py-12 text-center">
+                                    <td colspan="8" class="px-6 py-12 text-center">
                                         <svg class="size-10 mx-auto text-border mb-3" fill="none" stroke="currentColor"
                                             stroke-width="1.5" viewBox="0 0 24 24">
                                             <circle cx="8" cy="21" r="1" />

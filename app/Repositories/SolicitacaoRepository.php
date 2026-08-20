@@ -38,7 +38,7 @@ class SolicitacaoRepository
         $buscaNumerica = $busca ? preg_replace('/\D/', '', $busca) : null;
 
         return Solicitacao::query()
-            ->with('solicitante')
+            ->with('solicitante.setting')
             ->withCount('itens')
             ->when(
                 filled($busca),

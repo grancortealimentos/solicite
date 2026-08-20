@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 #[Fillable(['user_id', 'filial', 'status'])]
 class Solicitacao extends Model
@@ -33,5 +34,20 @@ class Solicitacao extends Model
     public function itens(): HasMany
     {
         return $this->hasMany(SolicitacaoItem::class);
+    }
+
+    /**
+     * Data de emissão + prazo de entrega configurado para o solicitante.
+     * Retorna null quando o solicitante não tem prazo configurado.
+     */
+    public function previsaoEntrega(): ?Carbon
+    {
+        $leadDays = $this->solicitante?->setting?->delivery_lead_days;
+
+        if ($leadDays === null) {
+            return null;
+        }
+
+        return $this->created_at->copy()->addDays($leadDays);
     }
 }

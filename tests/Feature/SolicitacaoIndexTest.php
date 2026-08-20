@@ -3,6 +3,7 @@
 use App\Livewire\Solicitacao\Index;
 use App\Models\Solicitacao;
 use App\Models\User;
+use App\Models\UserSetting;
 use Database\Seeders\PermissaoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -149,4 +150,21 @@ test('não é possível cancelar uma solicitação que já não está mais pende
         ->call('cancelar', $solicitacao->id);
 
     expect($solicitacao->refresh()->status)->toBe(Solicitacao::STATUS_APROVADA);
+});
+
+test('previsão de entrega soma o prazo configurado do solicitante à data de emissão', function () {
+    $user = User::factory()->create();
+    UserSetting::create(['user_id' => $user->id, 'delivery_lead_days' => 5]);
+
+    $solicitacao = Solicitacao::factory()->for($user, 'solicitante')->create(['created_at' => '2026-08-10']);
+
+    expect($solicitacao->previsaoEntrega()->toDateString())->toBe('2026-08-15');
+});
+
+test('previsão de entrega é nula quando o solicitante não tem prazo configurado', function () {
+    $user = User::factory()->create();
+
+    $solicitacao = Solicitacao::factory()->for($user, 'solicitante')->create();
+
+    expect($solicitacao->previsaoEntrega())->toBeNull();
 });
