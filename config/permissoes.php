@@ -33,6 +33,7 @@ return [
             'permissoes' => [
                 'usuarios.visualizar' => 'Listar e visualizar usuários',
                 'usuarios.gerenciar_permissoes' => 'Atribuir papel e permissões diretas ao usuário',
+                'usuarios.configuracoes' => 'Editar configurações do usuário',
             ],
         ],
         'pessoas' => [

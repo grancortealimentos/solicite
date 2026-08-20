@@ -61,6 +61,10 @@ Route::middleware('auth')->group(function () {
                 ->middleware('can:usuarios.gerenciar_permissoes')->name('permissoes');
             Route::put('/{usuario}/permissoes', [UsuarioController::class, 'atualizarPermissoes'])
                 ->middleware('can:usuarios.gerenciar_permissoes')->name('permissoes.update');
+            Route::get('/{usuario}/configuracoes', [UsuarioController::class, 'configuracoes'])
+                ->middleware('can:usuarios.configuracoes')->name('configuracoes');
+            Route::put('/{usuario}/configuracoes', [UsuarioController::class, 'atualizarConfiguracoes'])
+                ->middleware('can:usuarios.configuracoes')->name('configuracoes.update');
         });
 
         Route::prefix('solicitacao')->name('solicitacao.')->group(function () {

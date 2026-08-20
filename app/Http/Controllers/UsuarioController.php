@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Role;
 use App\Models\User;
+use App\Models\UserSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -58,5 +59,25 @@ class UsuarioController extends Controller
 
         return redirect()->route('usuarios.permissoes', $usuario)
             ->with('status', 'Permissões atualizadas com sucesso.');
+    }
+
+    public function configuracoes(User $usuario): View
+    {
+        return view('usuarios.configuracoes', [
+            'usuario' => $usuario,
+            'setting' => $usuario->setting,
+        ]);
+    }
+
+    public function atualizarConfiguracoes(Request $request, User $usuario): RedirectResponse
+    {
+        $data = $request->validate([
+            'delivery_lead_days' => ['required', 'integer', 'min:0', 'max:32767'],
+        ]);
+
+        UserSetting::updateOrCreate(['user_id' => $usuario->id], $data);
+
+        return redirect()->route('usuarios.configuracoes', $usuario)
+            ->with('status', 'Configurações atualizadas com sucesso.');
     }
 }
