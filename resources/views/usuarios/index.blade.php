@@ -20,17 +20,17 @@
                             <tr class="hover:bg-surface-hover">
                                 <td class="px-4 py-3 text-ink">{{ $usuario->name }}</td>
                                 <td class="px-4 py-3 text-ink-muted">{{ $usuario->email }}</td>
-                                <td class="px-4 py-3 text-ink-muted">{{ $usuario->roles->pluck('name')->join(', ') ?: '—' }}</td>
-                                <td class="px-4 py-3 text-right">
+                                <td class="px-4 py-3 text-ink-muted">{{ $usuario->roles->pluck('name')->join(', ') ?: '—' }}
+                                </td>
+                                <td class="px-4 py-3 text-right gap-4">
                                     @can('usuarios.gerenciar_permissoes')
-                                        <a href="{{ route('usuarios.permissoes', $usuario) }}"
-                                            class="text-primary-light">
-                                                <i class="bi bi-shield-shaded"></i>
+                                        <a href="{{ route('usuarios.permissoes', $usuario) }}" class="text-primary-light">
+                                            <i class="bi bi-shield-shaded"></i>
                                         </a>
                                     @endcan
+
                                     @can('usuarios.configuracoes')
-                                        <a href="{{ route('usuarios.configuracoes', $usuario) }}"
-                                            class="text-primary-light">
+                                        <a href="{{ route('usuarios.configuracoes', $usuario) }}" class="text-primary-light">
                                             <i class="bi bi-gear-fill"></i>
                                         </a>
                                     @endcan
