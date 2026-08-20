@@ -189,12 +189,25 @@ test('não salva sem filial selecionada', function () {
     expect(Solicitacao::count())->toBe(0);
 });
 
+test('não salva sem data de uso informada', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->call('salvar')
+        ->assertDispatched('toast', tipo: 'error', mensagem: 'Informe a data de uso antes de salvar.');
+
+    expect(Solicitacao::count())->toBe(0);
+});
+
 test('não salva sem nenhum item adicionado', function () {
     $user = User::factory()->create();
 
     Livewire::actingAs($user)
         ->test(Create::class)
         ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addDays(5)->format('Y-m-d'))
         ->call('salvar')
         ->assertDispatched('toast', tipo: 'error', mensagem: 'Adicione ao menos um item antes de salvar.');
 
@@ -223,6 +236,7 @@ test('salva a solicitação com a filial e os itens informados', function () {
     Livewire::actingAs($user)
         ->test(Create::class)
         ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addDays(5)->format('Y-m-d'))
         ->call('sincronizarItens', [$item])
         ->call('salvar')
         ->assertRedirect(route('solicitacao.index'));
@@ -247,8 +261,33 @@ test('abrirConfirmacao lista os problemas quando falta filial ou item', function
         ->assertSet('confirmacaoAberta', false)
         ->assertSet('problemas', [
             'Escolha a filial da solicitação.',
+            'Informe a data de uso da solicitação.',
             'Adicione pelo menos um item antes de salvar.',
         ]);
+});
+
+test('abrirConfirmacao rejeita data de uso no passado', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->subDay()->format('Y-m-d'))
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', false)
+        ->assertSet('problemas', ['A data de uso deve estar entre hoje e 2 anos à frente.', 'Adicione pelo menos um item antes de salvar.']);
+});
+
+test('abrirConfirmacao rejeita data de uso mais de 2 anos à frente', function () {
+    $user = User::factory()->create();
+
+    Livewire::actingAs($user)
+        ->test(Create::class)
+        ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addYears(2)->addDay()->format('Y-m-d'))
+        ->call('abrirConfirmacao')
+        ->assertSet('confirmacaoAberta', false)
+        ->assertSet('problemas', ['A data de uso deve estar entre hoje e 2 anos à frente.', 'Adicione pelo menos um item antes de salvar.']);
 });
 
 test('abrirConfirmacao abre a revisão quando filial e itens estão completos', function () {
@@ -273,6 +312,7 @@ test('abrirConfirmacao abre a revisão quando filial e itens estão completos', 
     Livewire::actingAs($user)
         ->test(Create::class)
         ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addDays(5)->format('Y-m-d'))
         ->call('sincronizarItens', [$item])
         ->call('abrirConfirmacao')
         ->assertSet('confirmacaoAberta', true)
@@ -303,6 +343,7 @@ test('voltar da revisão fecha o diálogo sem salvar', function () {
     Livewire::actingAs($user)
         ->test(Create::class)
         ->call('selecionarFilial', '010101')
+        ->set('dataUso', now()->addDays(5)->format('Y-m-d'))
         ->call('sincronizarItens', [$item])
         ->call('abrirConfirmacao')
         ->call('voltarParaEdicao')

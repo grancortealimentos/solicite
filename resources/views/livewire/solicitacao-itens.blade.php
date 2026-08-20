@@ -4,12 +4,14 @@
 
         @unless ($formAberto)
             <div class="flex items-center gap-3">
-                @unless ($filial)
-                    <span class="text-xs text-ink-muted">Escolha a filial para liberar a inclusão de itens.</span>
+                @unless ($filial && $dataUso)
+                    <span class="text-xs text-ink-muted">
+                        Escolha a filial e a data de uso para liberar a inclusão de itens.
+                    </span>
                 @endunless
 
-                <button type="button" wire:click="iniciarNovoItem" @disabled(! $filial)
-                    title="{{ $filial ? '' : 'Selecione a filial primeiro' }}"
+                <button type="button" wire:click="iniciarNovoItem" @disabled(! $filial || ! $dataUso)
+                    title="{{ $filial && $dataUso ? '' : 'Selecione a filial e a data de uso primeiro' }}"
                     class="py-2 px-3 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-hover focus:outline-hidden focus:ring-2 focus:ring-primary/40 disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="bi bi-plus-lg"></i>
                     Adicionar item
@@ -124,18 +126,7 @@
                         @enderror
                     </div>
 
-                    <div>
-                        <label for="dataPrazo" class="block text-xs font-semibold text-ink mb-2">
-                            Data de Uso <span class="text-danger">*</span>
-                        </label>
-                        <input id="dataPrazo" type="date" wire:model="dataPrazo"
-                            class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-lg text-sm text-ink focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary @error('dataPrazo') border-danger @enderror">
-                        @error('dataPrazo')
-                            <p class="mt-1.5 text-xs text-danger">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="sm:col-span-2 lg:col-span-2" wire:key="centro-custo-{{ $filial['code'] ?? 'sem-filial' }}"
+                    <div class="sm:col-span-2 lg:col-span-3" wire:key="centro-custo-{{ $filial['code'] ?? 'sem-filial' }}"
                         x-data="{
                             aberto: false,
                             busca: '',
@@ -299,7 +290,6 @@
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Descrição</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Estoque na filial</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Quantidade</th>
-                        <th class="px-4 py-3 text-start font-medium text-ink-muted">Data prazo</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Observação</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Centro de custo</th>
                         <th class="px-4 py-3 text-start font-medium text-ink-muted">Imagens</th>
@@ -325,9 +315,6 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-ink">{{ $item['quantidade'] }}</td>
-                            <td class="px-4 py-3 text-ink">
-                                {{ \Illuminate\Support\Carbon::parse($item['data_prazo'])->format('d/m/Y') }}
-                            </td>
                             <td class="px-4 py-3 text-ink">{{ $item['observacao'] }}</td>
                             <td class="px-4 py-3 text-ink">{{ $item['centro_custo'] }}</td>
                             <td class="px-4 py-3 text-ink-muted">
@@ -347,7 +334,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="px-4 py-6 text-center text-ink-muted">
+                            <td colspan="9" class="px-4 py-6 text-center text-ink-muted">
                                 @if ($itemEmEdicao !== null)
                                     Você está editando o único item da solicitação.
                                 @else

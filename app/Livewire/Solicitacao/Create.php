@@ -5,6 +5,7 @@ namespace App\Livewire\Solicitacao;
 use App\DTOs\Protheus\FilialProtheusData;
 use App\Services\Protheus\FilialProtheusService;
 use App\Services\SolicitacaoService;
+use Illuminate\Support\Carbon;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -15,6 +16,9 @@ use Livewire\Component;
 #[Title('Nova solicitação')]
 class Create extends Component
 {
+    /** Limite máximo de anos à frente para a data de uso. */
+    private const MAX_ANOS_PREVISAO = 2;
+
     /**
      * @var array{code: string, name: string, document: string, city: string, address: string, district: string, state: string, email: string, phone: string}|null
      */
@@ -23,6 +27,12 @@ class Create extends Component
     public bool $filialBuscaAberta = false;
 
     public string $termoBuscaFilial = '';
+
+    /**
+     * Data de uso da solicitação, aplicada a todos os itens. Reativa: qualquer
+     * alteração aqui é refletida pelo SolicitacaoItens (ver seu updated()).
+     */
+    public string $dataUso = '';
 
     /**
      * Cópia dos itens mantida pelo componente filho (SolicitacaoItens) via
@@ -101,6 +111,12 @@ class Create extends Component
             $this->problemas[] = 'Escolha a filial da solicitação.';
         }
 
+        if (! $this->dataUso) {
+            $this->problemas[] = 'Informe a data de uso da solicitação.';
+        } elseif (! $this->dataUsoValida()) {
+            $this->problemas[] = 'A data de uso deve estar entre hoje e '.self::MAX_ANOS_PREVISAO.' anos à frente.';
+        }
+
         if (empty($this->itens)) {
             $this->problemas[] = 'Adicione pelo menos um item antes de salvar.';
         }
@@ -117,10 +133,27 @@ class Create extends Component
         $this->confirmacaoAberta = false;
     }
 
+    private function dataUsoValida(): bool
+    {
+        try {
+            $data = Carbon::createFromFormat('Y-m-d', $this->dataUso)->startOfDay();
+        } catch (\Exception) {
+            return false;
+        }
+
+        return $data->greaterThanOrEqualTo(today()) && $data->lessThanOrEqualTo(now()->addYears(self::MAX_ANOS_PREVISAO));
+    }
+
     public function salvar(SolicitacaoService $solicitacaoService): void
     {
         if (! $this->filial) {
             $this->dispatch('toast', tipo: 'error', mensagem: 'Selecione a filial antes de salvar.');
+
+            return;
+        }
+
+        if (! $this->dataUso) {
+            $this->dispatch('toast', tipo: 'error', mensagem: 'Informe a data de uso antes de salvar.');
 
             return;
         }

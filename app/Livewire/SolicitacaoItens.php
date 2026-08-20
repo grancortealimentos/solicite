@@ -21,9 +21,6 @@ class SolicitacaoItens extends Component
     /** Acima disso pedimos confirmação (evita erro de digitação). */
     private const QUANTIDADE_ALTA = 1000;
 
-    /** Limite máximo de anos à frente para a data prazo. */
-    private const MAX_ANOS_PREVISAO = 2;
-
     private const MAX_IMAGENS_POR_ITEM = 3;
 
     /**
@@ -39,6 +36,13 @@ class SolicitacaoItens extends Component
      */
     #[Reactive]
     public ?array $filial = null;
+
+    /**
+     * Data de uso definida no cabeçalho da solicitação (componente pai),
+     * aplicada a todos os itens.
+     */
+    #[Reactive]
+    public string $dataUso = '';
 
     public bool $buscaModalAberta = false;
 
@@ -68,8 +72,6 @@ class SolicitacaoItens extends Component
     public ?array $produtoSelecionado = null;
 
     public string $quantidade = '';
-
-    public string $dataPrazo = '';
 
     public string $observacao = '';
 
@@ -207,6 +209,12 @@ class SolicitacaoItens extends Component
             return;
         }
 
+        if (! $this->dataUso) {
+            $this->dispatch('toast', tipo: 'error', mensagem: 'Informe a data de uso antes de adicionar itens.');
+
+            return;
+        }
+
         $this->limparFormulario();
         $this->itemEmEdicao = null;
         $this->formAberto = true;
@@ -237,7 +245,6 @@ class SolicitacaoItens extends Component
             'groupDescription' => $dados['grupo_produto'],
         ];
         $this->quantidade = (string) $dados['quantidade'];
-        $this->dataPrazo = (string) $dados['data_prazo'];
         $this->observacao = (string) $dados['observacao'];
         $this->centroCusto = array_search($dados['centro_custo'], $this->centrosCustoDisponiveis(), true) ?: '';
         $this->imagens = $dados['imagens'] ?? [];
@@ -261,7 +268,6 @@ class SolicitacaoItens extends Component
     {
         $this->produtoSelecionado = null;
         $this->quantidade = '1';
-        $this->dataPrazo = '';
         $this->observacao = '';
         $this->centroCusto = '';
         $this->imagens = [];
@@ -347,12 +353,6 @@ class SolicitacaoItens extends Component
     {
         $dados = $this->validate([
             'quantidade' => ['required', 'integer', 'min:1'],
-            'dataPrazo' => [
-                'required',
-                'date',
-                'after_or_equal:today',
-                'before_or_equal:'.now()->addYears(self::MAX_ANOS_PREVISAO)->format('Y-m-d'),
-            ],
             'observacao' => ['required', 'string', 'max:500'],
             'centroCusto' => ['required', Rule::in(array_keys($this->centrosCustoDisponiveis()))],
         ]);
@@ -368,7 +368,7 @@ class SolicitacaoItens extends Component
             'cta_contabil' => $this->produtoSelecionado['account'],
             'grupo_produto' => $this->produtoSelecionado['groupDescription'],
             'quantidade' => $dados['quantidade'],
-            'data_prazo' => $dados['dataPrazo'],
+            'data_prazo' => $this->dataUso,
             'observacao' => $dados['observacao'],
             'centro_custo' => $this->centrosCustoDisponiveis()[$dados['centroCusto']],
             'estoque_filial' => $this->estoqueProdutoSelecionado ?? 0,
@@ -441,6 +441,34 @@ class SolicitacaoItens extends Component
         $this->itemPendente = null;
 
         $this->cancelarFormulario();
+
+        $this->dispatch('itens-atualizados', itens: $this->itens);
+    }
+
+    /**
+     * $dataUso é reativa (vem do cabeçalho, componente pai); o Livewire chama
+     * este hook quando o valor muda.
+     */
+    public function updated(string $name): void
+    {
+        if ($name === 'dataUso') {
+            $this->sincronizarDataUso();
+        }
+    }
+
+    /**
+     * Propaga a data de uso atual do cabeçalho pros itens já adicionados,
+     * pra não ficar item com data desatualizada em relação ao cabeçalho.
+     */
+    public function sincronizarDataUso(): void
+    {
+        if (empty($this->itens)) {
+            return;
+        }
+
+        $this->itens = collect($this->itens)
+            ->map(fn (array $i): array => [...$i, 'data_prazo' => $this->dataUso])
+            ->all();
 
         $this->dispatch('itens-atualizados', itens: $this->itens);
     }

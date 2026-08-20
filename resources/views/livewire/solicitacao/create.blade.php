@@ -8,7 +8,7 @@
     <div class="bg-surface border border-border rounded-xl p-6 space-y-4">
         <h2 class="text-sm font-semibold text-ink">Dados da solicitação</h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-ink-muted mb-2">ID da solicitação</label>
                 <input type="text" value="Gerado ao salvar" disabled readonly
@@ -25,6 +25,14 @@
                 <label class="block text-sm font-medium text-ink-muted mb-2">Data de emissão</label>
                 <input type="text" value="{{ now()->format('d/m/Y') }}" disabled readonly
                     class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink-muted cursor-not-allowed">
+            </div>
+
+            <div>
+                <label for="dataUso" class="block text-sm font-medium text-ink-muted mb-2">
+                    Data de uso <span class="text-danger">*</span>
+                </label>
+                <input id="dataUso" type="date" wire:model="dataUso"
+                    class="py-2.5 px-3.5 block w-full bg-canvas border border-border rounded-xl sm:text-sm text-ink focus:ring-primary/20 focus:border-primary">
             </div>
         </div>
 
@@ -66,7 +74,7 @@
         </div>
     </div>
 
-    <livewire:solicitacao-itens :filial="$filial" wire:key="itens-{{ $filial['code'] ?? 'sem-filial' }}" />
+    <livewire:solicitacao-itens :filial="$filial" :dataUso="$dataUso" wire:key="itens-{{ $filial['code'] ?? 'sem-filial' }}" />
 
     <div class="flex flex-wrap gap-2">
         <button type="button" wire:click="abrirConfirmacao" wire:loading.attr="disabled" wire:target="abrirConfirmacao"
@@ -210,6 +218,12 @@
                                 <p class="text-xs font-medium text-ink-muted">Data de emissão</p>
                                 <p class="font-semibold text-ink">{{ now()->format('d/m/Y') }}</p>
                             </div>
+                            <div>
+                                <p class="text-xs font-medium text-ink-muted">Data de uso</p>
+                                <p class="font-semibold text-ink">
+                                    {{ $dataUso ? \Illuminate\Support\Carbon::parse($dataUso)->format('d/m/Y') : '—' }}
+                                </p>
+                            </div>
                             <div class="sm:col-span-2">
                                 <p class="text-xs font-medium text-ink-muted">Solicitante</p>
                                 <p class="font-semibold text-ink">{{ auth()->user()->name }}</p>
@@ -246,13 +260,7 @@
                                         </div>
                                     </div>
 
-                                    <div class="mt-3 grid gap-2 text-sm sm:grid-cols-3">
-                                        <div>
-                                            <p class="text-xs font-medium text-ink-muted">Precisa até</p>
-                                            <p class="text-ink">
-                                                {{ \Illuminate\Support\Carbon::parse($item['data_prazo'])->format('d/m/Y') }}
-                                            </p>
-                                        </div>
+                                    <div class="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                                         <div>
                                             <p class="text-xs font-medium text-ink-muted">Centro de custo</p>
                                             <p class="text-ink">{{ $item['centro_custo'] ?: 'Não informado' }}</p>
