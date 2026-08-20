@@ -38,15 +38,9 @@
                                 <span class="text-xs text-ink-muted">Selecione a filial</span>
                             @elseif ($estoqueProdutoSelecionado > 0)
                                 <span
-                                    class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
-                                    <i class="bi bi-check-circle-fill"></i>
-                                    Em estoque ({{ $estoqueProdutoSelecionado }})
-                                </span>
-                            @else
-                                <span
                                     class="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger">
-                                    <i class="bi bi-x-circle-fill"></i>
-                                    Sem estoque
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    Em estoque ({{ $estoqueProdutoSelecionado }})
                                 </span>
                             @endif
                         </div>
@@ -60,7 +54,7 @@
                 </button>
             </div>
 
-            @if ($produtoSelecionado && ($estoqueProdutoSelecionado ?? 0) > 0)
+            @if ($produtoSelecionado)
                 <div
                     class="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 shadow-[0_0_20px_rgba(245,158,11,0.12)]">
                     <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-amber-300">Última compra</p>
@@ -322,16 +316,12 @@
                             <td class="px-4 py-3">
                                 @if (($item['estoque_filial'] ?? 0) > 0)
                                     <span
-                                        class="inline-flex items-center gap-1.5 rounded-full bg-success/15 px-2.5 py-1 text-xs font-semibold text-success">
-                                        <i class="bi bi-check-circle-fill"></i>
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
                                         Em estoque ({{ $item['estoque_filial'] }})
                                     </span>
                                 @else
-                                    <span
-                                        class="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger">
-                                        <i class="bi bi-x-circle-fill"></i>
-                                        Sem estoque
-                                    </span>
+                                    <span class="text-ink-muted">—</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-ink">{{ $item['quantidade'] }}</td>
