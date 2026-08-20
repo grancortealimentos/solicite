@@ -94,7 +94,7 @@
                                         'bg-primary/15 text-primary-light font-medium' => request()->routeIs('papeis.*'),
                                         'text-ink-muted hover:bg-surface hover:text-ink' => !request()->routeIs('papeis.*'),
                                     ])>
-                                        Papéis
+                                        Permissões de Acesso
                                     </a>
                                 </li>
                             @endcan

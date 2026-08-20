@@ -81,7 +81,7 @@
                                 <p
                                     class="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-amber-300">
                                     <i class="bi bi-receipt"></i>
-                                    Último valor pago
+                                    Valor da Última Compra
                                 </p>
                                 <p class="mt-1 truncate text-sm font-bold text-amber-300">
                                     R$ {{ number_format($ultimaCompraProduto['valorUnitario'], 2, ',', '.') }}
